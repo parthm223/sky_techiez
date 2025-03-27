@@ -28,6 +28,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Create Password'),
       ),
@@ -39,6 +40,13 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/SkyLogo.png',
+                    height: 200,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 CustomTextField(
                   label: 'Password',
                   hint: 'Create a password',

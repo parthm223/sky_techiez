@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:sky_techiez/screens/create_password_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 
@@ -11,7 +12,8 @@ class UploadSelfieScreen extends StatefulWidget {
   State<UploadSelfieScreen> createState() => _UploadSelfieScreenState();
 }
 
-class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBindingObserver {
+class _UploadSelfieScreenState extends State<UploadSelfieScreen>
+    with WidgetsBindingObserver {
   CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
   bool _isCameraInitialized = false;
@@ -50,14 +52,17 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
   Future<void> _initializeCamera() async {
     try {
       _cameras = await availableCameras();
-      
+
       if (_cameras.isEmpty) {
         return;
       }
 
       // Start with front camera
-      final frontCameras = _cameras.where((camera) => camera.lensDirection == CameraLensDirection.front).toList();
-      final cameraToUse = frontCameras.isNotEmpty ? frontCameras.first : _cameras.first;
+      final frontCameras = _cameras
+          .where((camera) => camera.lensDirection == CameraLensDirection.front)
+          .toList();
+      final cameraToUse =
+          frontCameras.isNotEmpty ? frontCameras.first : _cameras.first;
 
       _cameraController = CameraController(
         cameraToUse,
@@ -67,7 +72,7 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
       );
 
       await _cameraController!.initialize();
-      
+
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
@@ -88,9 +93,11 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
 
     await _cameraController?.dispose();
 
-    final cameraToUse = _isFrontCamera 
-        ? _cameras.firstWhere((camera) => camera.lensDirection == CameraLensDirection.front)
-        : _cameras.firstWhere((camera) => camera.lensDirection == CameraLensDirection.back);
+    final cameraToUse = _isFrontCamera
+        ? _cameras.firstWhere(
+            (camera) => camera.lensDirection == CameraLensDirection.front)
+        : _cameras.firstWhere(
+            (camera) => camera.lensDirection == CameraLensDirection.back);
 
     _cameraController = CameraController(
       cameraToUse,
@@ -100,7 +107,7 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
     );
 
     await _cameraController!.initialize();
-    
+
     if (mounted) {
       setState(() {
         _isCameraInitialized = true;
@@ -109,7 +116,9 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
   }
 
   Future<void> _takePicture() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized || _isCapturing) {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _isCapturing) {
       return;
     }
 
@@ -119,7 +128,7 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
       });
 
       final XFile photo = await _cameraController!.takePicture();
-      
+
       setState(() {
         _capturedImage = File(photo.path);
         _isCapturing = false;
@@ -146,7 +155,10 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
         backgroundColor: AppColors.primaryBlue,
       ),
     );
-    Navigator.pop(context);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => CreatePasswordScreen()),
+    );
   }
 
   @override
@@ -158,7 +170,8 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
         elevation: 0,
       ),
       extendBodyBehindAppBar: true,
-      body: _capturedImage != null ? _buildPreviewScreen() : _buildCameraScreen(),
+      body:
+          _capturedImage != null ? _buildPreviewScreen() : _buildCameraScreen(),
     );
   }
 
@@ -207,7 +220,8 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
             ),
             child: Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                border:
+                    Border.all(color: Colors.white.withOpacity(0.3), width: 2),
                 shape: BoxShape.circle,
               ),
             ),
@@ -239,7 +253,8 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
               ),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(20),
@@ -283,7 +298,7 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
                         onPressed: _switchCamera,
                       ),
                     ),
-                  
+
                   // Capture Button
                   GestureDetector(
                     onTap: _isCapturing ? null : _takePicture,
@@ -315,7 +330,7 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
                       ),
                     ),
                   ),
-                  
+
                   // Empty space to balance the layout
                   const SizedBox(width: 68),
                 ],
@@ -391,7 +406,8 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
               ),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(20),
@@ -423,7 +439,7 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen> with WidgetsBin
                 isOutlined: true,
                 width: 150,
               ),
-              
+
               // Confirm Button
               CustomButton(
                 text: 'Confirm',

@@ -83,20 +83,12 @@ class SubscriptionsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _buildSubscriptionPlan(
-              context,
-              'Basic Plan',
-              'Access to basic features',
-              '₹499',
-              'Monthly',
-              ['Basic support', 'Limited features', '1 user'],
-            ),
             const SizedBox(height: 16),
             _buildSubscriptionPlan(
               context,
               'Premium Plan',
               'Access to all features',
-              '₹999',
+              '\$30.0',
               'Monthly',
               [
                 '24/7 support',
@@ -107,20 +99,6 @@ class SubscriptionsScreen extends StatelessWidget {
               isPremium: true,
             ),
             const SizedBox(height: 16),
-            _buildSubscriptionPlan(
-              context,
-              'Enterprise Plan',
-              'Custom solutions for businesses',
-              'Custom',
-              'Annual',
-              [
-                'Dedicated support',
-                'Custom features',
-                'Unlimited users',
-                'API access',
-                'Custom integrations'
-              ],
-            ),
           ],
         ),
       ),

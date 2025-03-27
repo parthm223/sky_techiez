@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sky_techiez/screens/create_account_screen.dart';
-import 'package:sky_techiez/screens/home_screen.dart';
+// import 'package:sky_techiez/screens/home_screen.dart';
+import 'package:sky_techiez/screens/verify_otp_2.dart';
 import 'package:sky_techiez/screens/verify_otp_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
@@ -32,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(20.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -42,22 +43,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: Column(
                       children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryBlue,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.cloud,
-                            size: 48,
-                            color: AppColors.white,
-                          ),
+                        Image.asset(
+                          'assets/images/SkyLogo.png',
+                          height: 120,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         const Text(
-                          'DIGITAL IT SOLUTION',
+                          'WELCOME TO SKY TECHIEZ',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -65,19 +57,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppColors.white,
                           ),
                         ),
-                        const Text(
-                          'IN NEW YORK',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 1.0,
-                            color: AppColors.white,
-                          ),
-                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 40),
                   const Text(
                     'Login',
                     style: TextStyle(
@@ -99,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   CustomTextField(
                     label: 'Password',
                     hint: 'Enter your password',
@@ -151,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const HomeScreen(),
+                            builder: (context) => const VerifyOtp2(),
                           ),
                         );
                       }

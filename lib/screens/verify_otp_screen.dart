@@ -54,6 +54,13 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/SkyLogo.png',
+                    height: 200,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 const Text(
                   'Verify',
                   style: TextStyle(

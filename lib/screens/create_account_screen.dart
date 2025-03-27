@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sky_techiez/screens/create_account_email_screen.dart';
-import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
 
@@ -29,6 +28,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Create New Account'),
       ),
@@ -40,6 +40,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/SkyLogo.png',
+                    height: 200,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 CustomTextField(
                   label: 'First Name',
                   hint: 'Enter your first name',

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sky_techiez/screens/upload_selfie_screen.dart';
-import 'package:sky_techiez/theme/app_theme.dart';
+
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
 
@@ -16,34 +16,17 @@ class CreateAccountMobileScreen extends StatefulWidget {
 class _CreateAccountMobileScreenState extends State<CreateAccountMobileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _mobileController = TextEditingController();
-  final _otpController = TextEditingController();
-  bool _otpSent = false;
 
   @override
   void dispose() {
     _mobileController.dispose();
-    _otpController.dispose();
     super.dispose();
-  }
-
-  void _sendOtp() {
-    if (_formKey.currentState!.validate()) {
-      // In a real app, you would send an OTP to the mobile number
-      setState(() {
-        _otpSent = true;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('OTP sent to your mobile number'),
-          backgroundColor: AppColors.primaryBlue,
-        ),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Create New Account'),
       ),
@@ -55,6 +38,13 @@ class _CreateAccountMobileScreenState extends State<CreateAccountMobileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/SkyLogo.png',
+                    height: 200,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 CustomTextField(
                   label: 'Mobile Number',
                   hint: 'Enter your mobile number',
@@ -76,36 +66,6 @@ class _CreateAccountMobileScreenState extends State<CreateAccountMobileScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                if (_otpSent) ...[
-                  CustomTextField(
-                    label: 'OTP',
-                    hint: 'Enter OTP sent to your mobile',
-                    controller: _otpController,
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter the OTP';
-                      }
-                      if (value.length < 4) {
-                        return 'OTP must be at least 4 digits';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton(
-                      onPressed: _sendOtp,
-                      child: const Text('Resend OTP'),
-                    ),
-                  ),
-                ] else ...[
-                  const SizedBox(height: 16),
-                  CustomButton(
-                    text: 'Verify',
-                    onPressed: _sendOtp,
-                  ),
-                ],
                 const Spacer(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -118,22 +78,20 @@ class _CreateAccountMobileScreenState extends State<CreateAccountMobileScreen> {
                       isOutlined: true,
                       width: 120,
                     ),
-                    if (_otpSent)
-                      CustomButton(
-                        text: 'Next',
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const UploadSelfieScreen(),
-                              ),
-                            );
-                          }
-                        },
-                        width: 120,
-                      ),
+                    CustomButton(
+                      text: 'Next',
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const UploadSelfieScreen(),
+                            ),
+                          );
+                        }
+                      },
+                      width: 120,
+                    ),
                   ],
                 ),
               ],

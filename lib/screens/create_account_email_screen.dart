@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:sky_techiez/screens/create_account_mobile_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
@@ -25,24 +27,124 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
     super.dispose();
   }
 
-  void _sendOtp() {
+  // Function to send OTP via API
+  Future<void> _sendOtp() async {
     if (_formKey.currentState!.validate()) {
-      // In a real app, you would send an OTP to the email
-      setState(() {
-        _otpSent = true;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('OTP sent to your email'),
-          backgroundColor: AppColors.primaryBlue,
-        ),
-      );
+      final email = _emailController.text.trim();
+      final url = Uri.parse('https://tech.skytechiez.co/api/send-otp');
+
+      print("Sending OTP to email: $email"); // Debugging print
+
+      try {
+        final response = await http.post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: jsonEncode({'email': email}),
+        );
+
+        print(
+            "Response status code: ${response.statusCode}"); // Debugging print
+        print("Response body: ${response.body}"); // Debugging print
+
+        if (response.statusCode == 200) {
+          setState(() {
+            _otpSent = true;
+          });
+          print("OTP successfully sent!"); // Debugging print
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP sent to your email'),
+              backgroundColor: AppColors.primaryBlue,
+            ),
+          );
+        } else {
+          print("Failed to send OTP. Server responded with ${response.body}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to send OTP. Try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (error) {
+        print("Error sending OTP: $error"); // Debugging print
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Function to verify OTP via API
+  Future<void> _verifyOtp() async {
+    if (_formKey.currentState!.validate()) {
+      final email = _emailController.text.trim();
+      final otp = _otpController.text.trim();
+      final url = Uri.parse('https://tech.skytechiez.co/api/verify-otp');
+
+      print("Verifying OTP: $otp for email: $email"); // Debugging print
+
+      try {
+        final response = await http.post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: jsonEncode({'email': email, 'otp': otp}),
+        );
+
+        print(
+            "Response status code: ${response.statusCode}"); // Debugging print
+        print("Response body: ${response.body}"); // Debugging print
+
+        if (response.statusCode == 200) {
+          print("OTP Verified Successfully!"); // Debugging print
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP verified successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate to the next screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CreateAccountMobileScreen(),
+            ),
+          );
+        } else {
+          print("Invalid OTP. Server responded with: ${response.body}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Invalid OTP. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (error) {
+        print("Error verifying OTP: $error"); // Debugging print
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Create New Account'),
       ),
@@ -54,6 +156,13 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/SkyLogo.png',
+                    height: 200,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 CustomTextField(
                   label: 'Email',
                   hint: 'Enter your email address',
@@ -90,15 +199,21 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
                   const SizedBox(height: 16),
                   Center(
                     child: TextButton(
-                      onPressed: _sendOtp,
+                      onPressed: () {
+                        print("Resend OTP button clicked"); // Debugging print
+                        _sendOtp();
+                      },
                       child: const Text('Resend OTP'),
                     ),
                   ),
                 ] else ...[
                   const SizedBox(height: 16),
                   CustomButton(
-                    text: 'Verify',
-                    onPressed: _sendOtp,
+                    text: 'Send OTP',
+                    onPressed: () {
+                      print("Send OTP button clicked"); // Debugging print
+                      _sendOtp();
+                    },
                   ),
                 ],
                 const Spacer(),
@@ -108,6 +223,7 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
                     CustomButton(
                       text: 'Back',
                       onPressed: () {
+                        print("Back button clicked"); // Debugging print
                         Navigator.pop(context);
                       },
                       isOutlined: true,
@@ -115,17 +231,10 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
                     ),
                     if (_otpSent)
                       CustomButton(
-                        text: 'Next',
+                        text: 'Verify OTP',
                         onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const CreateAccountMobileScreen(),
-                              ),
-                            );
-                          }
+                          print("Verify OTP button clicked"); // Debugging print
+                          _verifyOtp();
                         },
                         width: 120,
                       ),

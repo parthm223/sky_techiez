@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sky_techiez/theme/app_theme.dart';
 
 class TermsConditionsScreen extends StatelessWidget {
   const TermsConditionsScreen({super.key});
@@ -7,7 +6,10 @@ class TermsConditionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         title: const Text('Terms & Conditions'),
       ),
       body: SingleChildScrollView(
@@ -16,65 +18,57 @@ class TermsConditionsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Terms & Conditions',
+              'Terms and Conditions – Skytechiez',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 16),
             const Text(
-              'Last Updated: March 20, 2023',
+              'Last Updated: March 22, 2025',
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.grey,
+                color: Colors.white70,
               ),
             ),
             const SizedBox(height: 24),
             _buildTermsSection(
-              'Agreement to Terms',
-              'By accessing or using the Sky Techiez mobile application and services, you agree to be bound by these Terms and Conditions. If you disagree with any part of the terms, you may not access the service.',
+              '1. Services Provided',
+              'Skytechiez offers professional technical support services, including but not limited to:\n'
+                  '- Remote IT support\n'
+                  '- Computer and software troubleshooting\n'
+                  '- Network security solutions\n'
+                  '- Virus and malware removal\n'
+                  '- Data recovery and backup services',
             ),
             _buildTermsSection(
-              'Use of Services',
-              'Our services are provided "as is" and "as available." We make no warranties, expressed or implied, regarding the reliability, availability, or accuracy of our services.\n\n'
-                  'You agree to use our services only for lawful purposes and in accordance with these Terms. You agree not to use our services:\n\n'
-                  '• In any way that violates any applicable law or regulation\n'
-                  '• To harass, abuse, or harm another person\n'
-                  '• To impersonate any person or entity\n'
-                  '• To infringe upon the rights of others\n'
-                  '• To upload or transmit viruses or malicious code',
+              '2. User Responsibilities',
+              'By using our services, you agree to:\n'
+                  '- Provide accurate and truthful information regarding your technical concerns.\n'
+                  '- Ensure you have the legal authority to seek support for any device or software.\n'
+                  '- Use our services only for lawful purposes and in compliance with IT security regulations.',
             ),
             _buildTermsSection(
-              'User Accounts',
-              'When you create an account with us, you must provide accurate, complete, and up-to-date information. You are responsible for safeguarding the password that you use to access our services and for any activities or actions under your password.\n\n'
-                  'You agree not to disclose your password to any third party. You must notify us immediately upon becoming aware of any breach of security or unauthorized use of your account.',
+              '3. Payments & Billing',
+              'Services are billed according to the selected plan or one-time service fee. Unless otherwise agreed upon, full payment must be made before service delivery. Late payments may result in the suspension of services.',
             ),
             _buildTermsSection(
-              'Intellectual Property',
-              'The service and its original content, features, and functionality are and will remain the exclusive property of Sky Techiez and its licensors. The service is protected by copyright, trademark, and other laws.\n\n'
-                  'Our trademarks and trade dress may not be used in connection with any product or service without the prior written consent of Sky Techiez.',
+              '4. Refund Policy',
+              'See the Refund Policy section for details regarding cancellations and refunds.',
             ),
             _buildTermsSection(
-              'User Content',
-              'You retain all rights to any content you submit, post, or display on or through our services. By submitting, posting, or displaying content on or through our services, you grant us a worldwide, non-exclusive, royalty-free license to use, reproduce, modify, adapt, publish, translate, and distribute such content.',
+              '5. Limitation of Liability',
+              'Skytechiez is not responsible for any data loss, system downtime, or indirect damages resulting from the use of our services. Customers are responsible for maintaining backups before seeking technical support.',
             ),
             _buildTermsSection(
-              'Termination',
-              'We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.\n\n'
-                  'Upon termination, your right to use the service will immediately cease. If you wish to terminate your account, you may simply discontinue using the service.',
+              '6. Privacy Policy',
+              'All customer information is handled according to our Privacy Policy.',
             ),
             _buildTermsSection(
-              'Limitation of Liability',
-              'In no event shall Sky Techiez, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the service.',
-            ),
-            _buildTermsSection(
-              'Changes to Terms',
-              'We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material, we will try to provide at least 30 days\' notice prior to any new terms taking effect.',
-            ),
-            _buildTermsSection(
-              'Contact Us',
-              'If you have any questions about these Terms, please contact us at terms@skytechiez.com.',
+              '7. Governing Law',
+              'These Terms and Conditions are governed by the laws of Wyoming, USA.',
             ),
           ],
         ),
@@ -93,7 +87,7 @@ class TermsConditionsScreen extends StatelessWidget {
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.white,
+              color: Colors.blue,
             ),
           ),
           const SizedBox(height: 8),
@@ -102,7 +96,7 @@ class TermsConditionsScreen extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               height: 1.5,
-              color: AppColors.white,
+              color: Colors.white,
             ),
           ),
         ],

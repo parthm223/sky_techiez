@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sky_techiez/screens/id_selection_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 
@@ -87,6 +88,18 @@ class ProfileScreen extends StatelessWidget {
             CustomButton(
               text: 'Edit Profile',
               onPressed: () {},
+            ),
+            const SizedBox(height: 16),
+            CustomButton(
+              text: 'ID Verify',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DocumentSelectionScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),

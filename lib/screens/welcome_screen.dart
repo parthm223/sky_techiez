@@ -17,27 +17,26 @@ class WelcomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 60),
-              const Text(
-                'DIGITAL IT',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.white,
+              Center(
+                child: const Text(
+                  'WELCOME TO',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                    color: AppColors.white,
+                  ),
                 ),
               ),
-              const Text(
-                'SOLUTION IN NEW YORK',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 1.0,
-                  color: AppColors.white,
+              Center(
+                child: Image.asset(
+                  'assets/images/SkyLogo.png',
+                  height: 200,
                 ),
               ),
               const SizedBox(height: 16),
               Container(
-                width: 60,
+                width: 100,
                 height: 4,
                 color: AppColors.primaryBlue,
               ),
