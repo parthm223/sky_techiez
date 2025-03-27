@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:sky_techiez/controllers/registration_controller.dart';
 import 'package:sky_techiez/screens/create_account_email_screen.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
@@ -17,8 +19,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _lastNameController = TextEditingController();
   final _dobController = TextEditingController();
 
+  final RegistrationController _registrationController =
+      Get.put(RegistrationController());
+
+  @override
+  void initState() {
+    super.initState();
+    print("Initializing CreateAccountScreen");
+    _firstNameController.text = _registrationController.firstName.value;
+    _lastNameController.text = _registrationController.lastName.value;
+    _dobController.text = _registrationController.dob.value;
+    print(
+        "Loaded existing values: FirstName: ${_firstNameController.text}, LastName: ${_lastNameController.text}, DOB: ${_dobController.text}");
+  }
+
   @override
   void dispose() {
+    print("Disposing controllers");
     _firstNameController.dispose();
     _lastNameController.dispose();
     _dobController.dispose();
@@ -53,6 +70,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   controller: _firstNameController,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
+                      print("First Name validation failed");
                       return 'Please enter your first name';
                     }
                     return null;
@@ -65,6 +83,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   controller: _lastNameController,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
+                      print("Last Name validation failed");
                       return 'Please enter your last name';
                     }
                     return null;
@@ -83,6 +102,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   ],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
+                      print("DOB validation failed");
                       return 'Please enter your date of birth';
                     }
                     return null;
@@ -95,6 +115,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     CustomButton(
                       text: 'Back',
                       onPressed: () {
+                        print("Back button pressed");
                         Navigator.pop(context);
                       },
                       isOutlined: true,
@@ -103,14 +124,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     CustomButton(
                       text: 'Next',
                       onPressed: () {
+                        print("Next button pressed");
                         if (_formKey.currentState!.validate()) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const CreateAccountEmailScreen(),
-                            ),
-                          );
+                          print("Form validation passed");
+                          _registrationController.firstName.value =
+                              _firstNameController.text;
+                          _registrationController.lastName.value =
+                              _lastNameController.text;
+                          _registrationController.dob.value =
+                              _dobController.text;
+                          print(
+                              "Saved data: FirstName: ${_firstNameController.text}, LastName: ${_lastNameController.text}, DOB: ${_dobController.text}");
+                          Get.to(() => const CreateAccountEmailScreen(),
+                              arguments: {
+                                "first_name": _firstNameController.text,
+                                "last_name": _lastNameController.text,
+                                "dob": _dobController.text,
+                              });
                         }
                       },
                       width: 120,
@@ -143,7 +173,7 @@ class _DateInputFormatter extends TextInputFormatter {
         buffer.write('/');
       }
     }
-
+    print("Formatted DOB input: ${buffer.toString()}");
     return TextEditingValue(
       text: buffer.toString(),
       selection: TextSelection.collapsed(offset: buffer.length),

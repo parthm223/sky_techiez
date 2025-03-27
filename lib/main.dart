@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:sky_techiez/screens/home_screen.dart';
 import 'package:sky_techiez/screens/welcome_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 
@@ -11,11 +13,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Sky Techiez',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme(),
       home: const WelcomeScreen(),
+      // home: const HomeScreen(),
     );
   }
 }

@@ -17,11 +17,10 @@ class TicketStatusScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Ticket Status',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+            Center(
+              child: Image.asset(
+                'assets/images/SkyLogo.png',
+                height: 120,
               ),
             ),
             const SizedBox(height: 24),

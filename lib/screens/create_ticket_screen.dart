@@ -15,7 +15,19 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _selectedCategory = 'Technical Issue';
+  String? _selectedTechnicalSupportType;
   String _selectedPriority = 'Medium';
+
+  final List<String> _technicalSupportTypes = [
+    'Desktop Support',
+    'Wireless Printer Setup',
+    'Quicken Support',
+    'QuickBooks Support',
+    'Antivirus Support',
+    'Printer Support',
+    'Office 365 Support',
+    'Outlook Support',
+  ];
 
   final List<String> _categories = [
     'Technical Issue',
@@ -52,11 +64,10 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Create Ticket',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              Center(
+                child: Image.asset(
+                  'assets/images/SkyLogo.png',
+                  height: 120,
                 ),
               ),
               const SizedBox(height: 24),
@@ -107,6 +118,10 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                           if (newValue != null) {
                             setState(() {
                               _selectedCategory = newValue;
+                              // Reset technical support type when changing category
+                              if (newValue != 'Technical Issue') {
+                                _selectedTechnicalSupportType = null;
+                              }
                             });
                           }
                         },
@@ -115,6 +130,53 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                   ),
                 ],
               ),
+              // Show Technical Support dropdown if Technical Issue is selected
+              if (_selectedCategory == 'Technical Issue') ...[
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Technical Support Type',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.lightGrey,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedTechnicalSupportType,
+                          isExpanded: true,
+                          dropdownColor: AppColors.darkBackground,
+                          style: const TextStyle(color: AppColors.white),
+                          hint: const Text('Select Technical Support Type'),
+                          items: _technicalSupportTypes.map((String type) {
+                            return DropdownMenuItem<String>(
+                              value: type,
+                              child: Text(type),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _selectedTechnicalSupportType = newValue;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

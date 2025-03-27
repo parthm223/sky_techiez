@@ -26,14 +26,15 @@ class TermsConditionsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Last Updated: March 22, 2025',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white70,
+            Center(
+              child: Image.asset(
+                'assets/images/SkyLogo.png',
+                height: 200,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white38, thickness: 1),
+            const SizedBox(height: 16),
             _buildTermsSection(
               '1. Services Provided',
               'Skytechiez offers professional technical support services, including but not limited to:\n'

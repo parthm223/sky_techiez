@@ -6,7 +6,8 @@ class GovernmentIdCaptureScreen extends StatefulWidget {
   const GovernmentIdCaptureScreen({Key? key}) : super(key: key);
 
   @override
-  State<GovernmentIdCaptureScreen> createState() => _GovernmentIdCaptureScreenState();
+  State<GovernmentIdCaptureScreen> createState() =>
+      _GovernmentIdCaptureScreenState();
 }
 
 class _GovernmentIdCaptureScreenState extends State<GovernmentIdCaptureScreen> {
@@ -22,7 +23,12 @@ class _GovernmentIdCaptureScreenState extends State<GovernmentIdCaptureScreen> {
       ),
       body: Column(
         children: [
-          _buildStepIndicator(),
+          Center(
+            child: Image.asset(
+              'assets/images/SkyLogo.png',
+              height: 120,
+            ),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
@@ -69,7 +75,7 @@ class _GovernmentIdCaptureScreenState extends State<GovernmentIdCaptureScreen> {
           final stepNumber = index + 1;
           final isCurrentStep = stepNumber == currentStep;
           final isPastStep = stepNumber < currentStep;
-          
+
           return Row(
             children: [
               Container(
@@ -77,13 +83,17 @@ class _GovernmentIdCaptureScreenState extends State<GovernmentIdCaptureScreen> {
                 height: 32,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isCurrentStep 
-                      ? Colors.blue 
-                      : (isPastStep ? Colors.blue.withOpacity(0.5) : Colors.grey.shade800),
+                  color: isCurrentStep
+                      ? Colors.blue
+                      : (isPastStep
+                          ? Colors.blue.withOpacity(0.5)
+                          : Colors.grey.shade800),
                   border: Border.all(
-                    color: isCurrentStep 
-                        ? Colors.blue 
-                        : (isPastStep ? Colors.blue.withOpacity(0.5) : Colors.grey.shade700),
+                    color: isCurrentStep
+                        ? Colors.blue
+                        : (isPastStep
+                            ? Colors.blue.withOpacity(0.5)
+                            : Colors.grey.shade700),
                     width: 1,
                   ),
                 ),
@@ -91,7 +101,9 @@ class _GovernmentIdCaptureScreenState extends State<GovernmentIdCaptureScreen> {
                   child: Text(
                     '$stepNumber',
                     style: TextStyle(
-                      color: isCurrentStep || isPastStep ? Colors.white : Colors.grey,
+                      color: isCurrentStep || isPastStep
+                          ? Colors.white
+                          : Colors.grey,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -101,7 +113,9 @@ class _GovernmentIdCaptureScreenState extends State<GovernmentIdCaptureScreen> {
                 Container(
                   width: 24,
                   height: 1,
-                  color: isPastStep ? Colors.blue.withOpacity(0.5) : Colors.grey.shade700,
+                  color: isPastStep
+                      ? Colors.blue.withOpacity(0.5)
+                      : Colors.grey.shade700,
                 ),
             ],
           );
@@ -144,7 +158,8 @@ class _GovernmentIdCaptureScreenState extends State<GovernmentIdCaptureScreen> {
                     border: Border.all(color: Colors.blue, width: 2),
                   ),
                   child: const Center(
-                    child: Icon(Icons.badge_outlined, color: Colors.blue, size: 32),
+                    child: Icon(Icons.badge_outlined,
+                        color: Colors.blue, size: 32),
                   ),
                 ),
                 Container(
@@ -287,13 +302,13 @@ class _GovernmentIdCaptureScreenState extends State<GovernmentIdCaptureScreen> {
   void _onContinue() {
     // Navigate to the next screen
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Government ID photo captured successfully!')),
+      const SnackBar(
+          content: Text('Government ID photo captured successfully!')),
     );
-    
+
     // In a real app, you would navigate to the next screen
     Future.delayed(const Duration(seconds: 1), () {
       Navigator.pop(context);
     });
   }
 }
-

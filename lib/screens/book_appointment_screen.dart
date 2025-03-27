@@ -17,6 +17,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   final _dateController = TextEditingController();
   final _timeController = TextEditingController();
   String _selectedIssueType = 'Technical Support';
+  String? _selectedTechnicalSupportType;
 
   final List<String> _issueTypes = [
     'Technical Support',
@@ -24,6 +25,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     'Billing Inquiry',
     'Product Demo',
     'Consultation',
+  ];
+
+  final List<String> _technicalSupportTypes = [
+    'Desktop Support',
+    'Wireless Printer Setup',
+    'Quicken Support',
+    'QuickBooks Support',
+    'Antivirus Support',
+    'Printer Support',
+    'Office 365 Support',
+    'Outlook Support',
   ];
 
   @override
@@ -98,11 +110,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Book Appointment',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              Center(
+                child: Image.asset(
+                  'assets/images/SkyLogo.png',
+                  height: 120,
                 ),
               ),
               const SizedBox(height: 24),
@@ -153,6 +164,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                           if (newValue != null) {
                             setState(() {
                               _selectedIssueType = newValue;
+                              // Reset technical support type when changing issue type
+                              if (newValue != 'Technical Support') {
+                                _selectedTechnicalSupportType = null;
+                              }
                             });
                           }
                         },
@@ -161,6 +176,53 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   ),
                 ],
               ),
+              // Show Technical Support dropdown if Technical Support is selected
+              if (_selectedIssueType == 'Technical Support') ...[
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Technical Support Type',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.lightGrey,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedTechnicalSupportType,
+                          isExpanded: true,
+                          dropdownColor: AppColors.darkBackground,
+                          style: const TextStyle(color: AppColors.white),
+                          hint: const Text('Select Technical Support Type'),
+                          items: _technicalSupportTypes.map((String type) {
+                            return DropdownMenuItem<String>(
+                              value: type,
+                              child: Text(type),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _selectedTechnicalSupportType = newValue;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               CustomTextField(
                 label: 'Issue',
@@ -250,31 +312,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Case ID',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGrey,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Will be generated after submission',
-                      style: TextStyle(color: AppColors.grey),
-                    ),
-                  ),
-                ],
+              Divider(
+                thickness: 2.5,
               ),
               const SizedBox(height: 24),
               CustomButton(

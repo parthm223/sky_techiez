@@ -16,8 +16,15 @@ class PrivacyPolicyScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildTitle('Privacy Policy – Skytechiez'),
-            _buildSubtitle('Last Updated: March 22, 2025'),
-            const SizedBox(height: 24),
+            Center(
+              child: Image.asset(
+                'assets/images/SkyLogo.png',
+                height: 200,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white38, thickness: 1),
+            const SizedBox(height: 16),
             _buildPolicySection(
               '1. Information We Collect',
               [
@@ -87,18 +94,18 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSubtitle(String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Colors.grey,
-        ),
-      ),
-    );
-  }
+  // Widget _buildSubtitle(String subtitle) {
+  //   return Padding(
+  //     padding: const EdgeInsets.only(top: 8),
+  //     child: Text(
+  //       subtitle,
+  //       style: const TextStyle(
+  //         fontSize: 14,
+  //         color: Colors.grey,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildPolicySection(String title, List<String> content) {
     return Padding(

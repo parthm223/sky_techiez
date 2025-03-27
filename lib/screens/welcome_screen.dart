@@ -34,15 +34,9 @@ class WelcomeScreen extends StatelessWidget {
                   height: 200,
                 ),
               ),
-              const SizedBox(height: 16),
-              Container(
-                width: 100,
-                height: 4,
-                color: AppColors.primaryBlue,
-              ),
               const SizedBox(height: 40),
               const Text(
-                'We provide innovative technology solutions to help businesses grow and succeed in the digital age.',
+                '24/7 technical support made easy—fast, reliable solutions to keep your devices running smoothly and stress-free.',
                 style: TextStyle(
                   fontSize: 16,
                   color: AppColors.white,

@@ -17,6 +17,12 @@ class DocumentSelectionScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Image.asset(
+                'assets/images/SkyLogo.png',
+                height: 120,
+              ),
+            ),
             const Text(
               'Select your ID type',
               style: TextStyle(

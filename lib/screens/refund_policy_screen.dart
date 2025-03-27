@@ -28,11 +28,10 @@ class RefundPolicyScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Last Updated: March 22, 2025',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white70,
+            Center(
+              child: Image.asset(
+                'assets/images/SkyLogo.png',
+                height: 200,
               ),
             ),
             const SizedBox(height: 16),

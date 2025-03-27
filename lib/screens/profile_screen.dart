@@ -17,6 +17,12 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Image.asset(
+                'assets/images/SkyLogo.png',
+                height: 120,
+              ),
+            ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -41,8 +47,7 @@ class ProfileScreen extends StatelessWidget {
                       _buildProfileItem('Account ID:', 'ACC987654'),
                       const SizedBox(height: 8),
                       const Divider(color: AppColors.grey),
-                      const SizedBox(height: 8),
-                      _buildProfileItem('Account ID:', 'ACC987654'),
+                      const SizedBox(height: 8)
                     ],
                   ),
                 ),

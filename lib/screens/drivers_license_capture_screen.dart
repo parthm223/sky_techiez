@@ -6,10 +6,12 @@ class DriversLicenseCaptureScreen extends StatefulWidget {
   const DriversLicenseCaptureScreen({Key? key}) : super(key: key);
 
   @override
-  State<DriversLicenseCaptureScreen> createState() => _DriversLicenseCaptureScreenState();
+  State<DriversLicenseCaptureScreen> createState() =>
+      _DriversLicenseCaptureScreenState();
 }
 
-class _DriversLicenseCaptureScreenState extends State<DriversLicenseCaptureScreen> {
+class _DriversLicenseCaptureScreenState
+    extends State<DriversLicenseCaptureScreen> {
   int currentStep = 2;
   File? frontImage;
   File? backImage;
@@ -23,7 +25,12 @@ class _DriversLicenseCaptureScreenState extends State<DriversLicenseCaptureScree
       ),
       body: Column(
         children: [
-          _buildStepIndicator(),
+          Center(
+            child: Image.asset(
+              'assets/images/SkyLogo.png',
+              height: 120,
+            ),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
@@ -67,57 +74,6 @@ class _DriversLicenseCaptureScreenState extends State<DriversLicenseCaptureScree
     );
   }
 
-  Widget _buildStepIndicator() {
-    return Container(
-      color: Colors.black,
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(5, (index) {
-          final stepNumber = index + 1;
-          final isCurrentStep = stepNumber == currentStep;
-          final isPastStep = stepNumber < currentStep;
-          
-          return Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isCurrentStep 
-                      ? Colors.blue 
-                      : (isPastStep ? Colors.blue.withOpacity(0.5) : Colors.grey.shade800),
-                  border: Border.all(
-                    color: isCurrentStep 
-                        ? Colors.blue 
-                        : (isPastStep ? Colors.blue.withOpacity(0.5) : Colors.grey.shade700),
-                    width: 1,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    '$stepNumber',
-                    style: TextStyle(
-                      color: isCurrentStep || isPastStep ? Colors.white : Colors.grey,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              if (index < 4)
-                Container(
-                  width: 24,
-                  height: 1,
-                  color: isPastStep ? Colors.blue.withOpacity(0.5) : Colors.grey.shade700,
-                ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
   Widget _buildDocumentUploadSection({
     required bool isActive,
     required bool isFront,
@@ -125,7 +81,7 @@ class _DriversLicenseCaptureScreenState extends State<DriversLicenseCaptureScree
   }) {
     final borderColor = isActive ? Colors.blue : Colors.grey.shade700;
     final textColor = isActive ? Colors.blue : Colors.grey;
-    
+
     return Container(
       width: double.infinity,
       height: 180,
@@ -158,7 +114,8 @@ class _DriversLicenseCaptureScreenState extends State<DriversLicenseCaptureScree
                   child: Center(
                     child: isFront
                         ? Icon(Icons.person_outline, color: textColor, size: 32)
-                        : Icon(Icons.horizontal_rule_outlined, color: textColor, size: 32),
+                        : Icon(Icons.horizontal_rule_outlined,
+                            color: textColor, size: 32),
                   ),
                 ),
                 Container(
@@ -166,11 +123,13 @@ class _DriversLicenseCaptureScreenState extends State<DriversLicenseCaptureScree
                   height: 32,
                   margin: const EdgeInsets.only(top: 8),
                   decoration: BoxDecoration(
-                    color: isActive ? const Color(0xFF4CD964) : Colors.grey.shade700,
+                    color: isActive
+                        ? const Color(0xFF4CD964)
+                        : Colors.grey.shade700,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    Icons.add, 
+                    Icons.add,
                     color: isActive ? Colors.white : Colors.grey.shade500,
                   ),
                 ),
@@ -308,13 +267,13 @@ class _DriversLicenseCaptureScreenState extends State<DriversLicenseCaptureScree
   void _onContinue() {
     // Navigate to the next screen
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Driver\'s license photos captured successfully!')),
+      const SnackBar(
+          content: Text('Driver\'s license photos captured successfully!')),
     );
-    
+
     // In a real app, you would navigate to the next screen
     Future.delayed(const Duration(seconds: 1), () {
       Navigator.pop(context);
     });
   }
 }
-

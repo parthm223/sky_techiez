@@ -22,7 +22,12 @@ class _PassportCaptureScreenState extends State<PassportCaptureScreen> {
       ),
       body: Column(
         children: [
-          _buildStepIndicator(),
+          Center(
+            child: Image.asset(
+              'assets/images/SkyLogo.png',
+              height: 120,
+            ),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
@@ -55,57 +60,6 @@ class _PassportCaptureScreenState extends State<PassportCaptureScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildStepIndicator() {
-    return Container(
-      color: Colors.black,
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(5, (index) {
-          final stepNumber = index + 1;
-          final isCurrentStep = stepNumber == currentStep;
-          final isPastStep = stepNumber < currentStep;
-          
-          return Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isCurrentStep 
-                      ? Colors.blue 
-                      : (isPastStep ? Colors.blue.withOpacity(0.5) : Colors.grey.shade800),
-                  border: Border.all(
-                    color: isCurrentStep 
-                        ? Colors.blue 
-                        : (isPastStep ? Colors.blue.withOpacity(0.5) : Colors.grey.shade700),
-                    width: 1,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    '$stepNumber',
-                    style: TextStyle(
-                      color: isCurrentStep || isPastStep ? Colors.white : Colors.grey,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              if (index < 4)
-                Container(
-                  width: 24,
-                  height: 1,
-                  color: isPastStep ? Colors.blue.withOpacity(0.5) : Colors.grey.shade700,
-                ),
-            ],
-          );
-        }),
       ),
     );
   }
@@ -144,7 +98,8 @@ class _PassportCaptureScreenState extends State<PassportCaptureScreen> {
                     border: Border.all(color: Colors.blue, width: 2),
                   ),
                   child: const Center(
-                    child: Icon(Icons.article_outlined, color: Colors.blue, size: 32),
+                    child: Icon(Icons.article_outlined,
+                        color: Colors.blue, size: 32),
                   ),
                 ),
                 Container(
@@ -289,11 +244,10 @@ class _PassportCaptureScreenState extends State<PassportCaptureScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Passport photo captured successfully!')),
     );
-    
+
     // In a real app, you would navigate to the next screen
     Future.delayed(const Duration(seconds: 1), () {
       Navigator.pop(context);
     });
   }
 }
-

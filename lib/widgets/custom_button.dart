@@ -3,7 +3,7 @@ import 'package:sky_techiez/theme/app_theme.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final Function()? onPressed; // Changed from VoidCallback to Function()?
   final bool isOutlined;
   final double? width;
   final EdgeInsets? padding;

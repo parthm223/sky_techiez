@@ -25,20 +25,16 @@ class AboutUsScreen extends StatelessWidget {
             const SizedBox(height: 16),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Container(
-                height: 200,
-                width: double.infinity,
-                color: AppColors.primaryBlue,
-                child: const Center(
-                  child: Icon(
-                    Icons.support_agent,
-                    size: 64,
-                    color: AppColors.white,
-                  ),
+              child: Center(
+                child: Image.asset(
+                  'assets/images/SkyLogo.png',
+                  height: 200,
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white38, thickness: 1),
+            const SizedBox(height: 16),
             const Text(
               'Our Company',
               style: TextStyle(

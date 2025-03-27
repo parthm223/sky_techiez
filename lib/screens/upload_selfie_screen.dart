@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:get/get.dart';
+import 'package:sky_techiez/controllers/registration_controller.dart';
 import 'package:sky_techiez/screens/create_password_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
@@ -21,11 +23,30 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
   File? _capturedImage;
   bool _isFrontCamera = true;
 
+  // Get the registration controller
+  final RegistrationController _registrationController =
+      Get.find<RegistrationController>();
+  String firstName = "";
+  String lastName = "";
+  String dob = "";
+  String email = "";
+  String mobile = "";
   @override
   void initState() {
+    firstName = Get.arguments["first_name"];
+    lastName = Get.arguments["last_name"];
+    dob = Get.arguments["dob"];
+    email = Get.arguments["email"];
+    mobile = Get.arguments["mobile_number"];
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initializeCamera();
+
+    // Check if we already have a profile image
+    if (_registrationController.profileImage.value != null) {
+      _capturedImage = _registrationController.profileImage.value;
+    } else {
+      _initializeCamera();
+    }
   }
 
   @override
@@ -115,6 +136,8 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
     }
   }
 
+  var selphoto = "";
+
   Future<void> _takePicture() async {
     if (_cameraController == null ||
         !_cameraController!.value.isInitialized ||
@@ -128,6 +151,7 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
       });
 
       final XFile photo = await _cameraController!.takePicture();
+      selphoto = photo.path;
 
       setState(() {
         _capturedImage = File(photo.path);
@@ -148,17 +172,18 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
   }
 
   void _confirmSelfie() {
-    // In a real app, you would upload the selfie here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Selfie uploaded successfully'),
-        backgroundColor: AppColors.primaryBlue,
-      ),
-    );
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => CreatePasswordScreen()),
-    );
+    // Save profile image to controller
+    _registrationController.profileImage.value = _capturedImage;
+
+    // Navigate to password screen
+    Get.to(() => const CreatePasswordScreen(), arguments: {
+      "first_name": firstName,
+      "last_name": lastName,
+      "dob": dob,
+      "email": email,
+      "mobile_number": mobile,
+      "selfie_image": selphoto,
+    });
   }
 
   @override

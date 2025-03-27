@@ -16,11 +16,10 @@ class SubscriptionsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Subscriptions',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+            Center(
+              child: Image.asset(
+                'assets/images/SkyLogo.png',
+                height: 120,
               ),
             ),
             const SizedBox(height: 16),

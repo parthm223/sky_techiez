@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:sky_techiez/controllers/auth_controller.dart';
 import 'package:sky_techiez/screens/create_account_screen.dart';
-// import 'package:sky_techiez/screens/home_screen.dart';
-import 'package:sky_techiez/screens/verify_otp_2.dart';
-import 'package:sky_techiez/screens/verify_otp_screen.dart';
+import 'package:sky_techiez/screens/home_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
@@ -20,11 +20,53 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  // Get the auth controller
+  final AuthController _authController = Get.put(AuthController());
+
   @override
   void dispose() {
     _emailOrPhoneController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final String emailOrPhone = _emailOrPhoneController.text;
+    final String password = _passwordController.text;
+
+    print("Attempting login with: $emailOrPhone and password: $password");
+
+    try {
+      final result = await _authController.login(emailOrPhone, password);
+
+      if (result['success']) {
+        Get.snackbar(
+          'Error',
+          result['message'] ?? 'Login failed',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+
+        // Navigate to home screen
+        // Get.offAll(() => const HomeScreen());
+      } else {
+        Get.snackbar(
+          'Success',
+          result['message'],
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Error: $e',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   @override
@@ -113,12 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const VerifyOtpScreen(),
-                          ),
-                        );
+                        // Forgot password functionality
                       },
                       child: const Text(
                         'Forgot Password?',
@@ -127,18 +164,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  CustomButton(
-                    text: 'Login',
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const VerifyOtp2(),
+                  Obx(
+                    () => _authController.isLoading.value
+                        ? const Center(child: CircularProgressIndicator())
+                        : CustomButton(
+                            text: 'Login',
+                            onPressed: _login,
                           ),
-                        );
-                      }
-                    },
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -165,12 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   CustomButton(
                     text: 'Create New Account',
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CreateAccountScreen(),
-                        ),
-                      );
+                      Get.to(() => const CreateAccountScreen());
                     },
                     isOutlined: true,
                   ),

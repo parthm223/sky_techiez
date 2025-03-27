@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sky_techiez/screens/book_appointment_screen.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
+import 'package:sky_techiez/screens/services_screen.dart';
+import 'package:sky_techiez/screens/subscriptions_screen.dart';
 
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
@@ -15,14 +17,27 @@ class HomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Welcome To Sky Techiez',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              const Text(
+                'Welcome To',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Center(
+                child: Image.asset(
+                  'assets/images/SkyLogo.png',
+                  height: 100,
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 16),
+          Divider(),
           const SizedBox(height: 16),
           GridView.count(
             shrinkWrap: true,
@@ -60,7 +75,6 @@ class HomeContent extends StatelessWidget {
             }),
           ),
           const SizedBox(height: 24),
-          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -179,7 +193,25 @@ class HomeContent extends StatelessWidget {
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios,
                       size: 16, color: AppColors.grey),
-                  onTap: () {},
+                  onTap: () {
+                    // Navigation logic based on index
+                    if (index == 1) {
+                      // Second item (index 1 is "Support Service")
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ServicesScreen()),
+                      );
+                    } else if (index == 2) {
+                      // Last item (index 2 is "Premium Subscription")
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => SubscriptionsScreen()),
+                      );
+                    }
+                    // Index 0 ("Design Service") doesn't navigate anywhere in this example
+                  },
                 ),
               );
             },
