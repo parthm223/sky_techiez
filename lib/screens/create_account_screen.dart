@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:sky_techiez/controllers/registration_controller.dart';
 import 'package:sky_techiez/screens/create_account_email_screen.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
+import 'package:intl/intl.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -40,6 +40,25 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _lastNameController.dispose();
     _dobController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      // This will make the date picker show month first
+      initialEntryMode: DatePickerEntryMode.input,
+    );
+
+    if (picked != null) {
+      final formattedDate = DateFormat('MM/dd/yyyy').format(picked);
+      setState(() {
+        _dobController.text = formattedDate;
+      });
+      print("Selected date: $formattedDate");
+    }
   }
 
   @override
@@ -90,23 +109,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                CustomTextField(
-                  label: 'DOB',
-                  hint: 'DD/MM/YYYY',
-                  controller: _dobController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(8),
-                    _DateInputFormatter(),
-                  ],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      print("DOB validation failed");
-                      return 'Please enter your date of birth';
-                    }
-                    return null;
-                  },
+                GestureDetector(
+                  onTap: () => _selectDate(context),
+                  child: AbsorbPointer(
+                    child: CustomTextField(
+                      label: 'Date of Birth',
+                      hint: 'MM/DD/YYYY',
+                      controller: _dobController,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          print("DOB validation failed");
+                          return 'Please select your date of birth';
+                        }
+                        // Add additional validation for date format if needed
+                        return null;
+                      },
+                    ),
+                  ),
                 ),
                 const Spacer(),
                 Row(
@@ -152,31 +171,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _DateInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    if (newValue.text.isEmpty) {
-      return newValue;
-    }
-
-    final text = newValue.text.replaceAll('/', '');
-    final buffer = StringBuffer();
-
-    for (int i = 0; i < text.length; i++) {
-      buffer.write(text[i]);
-      if ((i == 1 || i == 3) && i != text.length - 1) {
-        buffer.write('/');
-      }
-    }
-    print("Formatted DOB input: ${buffer.toString()}");
-    return TextEditingValue(
-      text: buffer.toString(),
-      selection: TextSelection.collapsed(offset: buffer.length),
     );
   }
 }
