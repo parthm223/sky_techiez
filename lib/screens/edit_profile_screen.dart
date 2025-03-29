@@ -1,11 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:sky_techiez/models/user_login.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
+import 'package:sky_techiez/widgets/session_string.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -17,6 +21,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
+  final GetStorage _storage = GetStorage();
 
   // Text controllers
   final TextEditingController _firstNameController = TextEditingController();
@@ -24,24 +29,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
 
-  String? selfieImage;
-  bool isLoading = false;
+  String? _selfieImagePath;
+  File? _selfieImageFile;
+  bool _isLoading = false;
+  UserLogin _userDetail = UserLogin();
 
   @override
   void initState() {
     super.initState();
-    // Initialize with data passed from arguments
-    if (Get.arguments != null) {
-      _firstNameController.text = Get.arguments["first_name"] ?? '';
-      _lastNameController.text = Get.arguments["last_name"] ?? '';
-      _dobController.text = Get.arguments["dob"] ?? '';
-      _emailController.text = Get.arguments["email"] ?? '';
-      _mobileController.text = Get.arguments["mobile_number"] ?? '';
-      selfieImage = Get.arguments["selfie_image"];
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final storedData = _storage.read(userCollectionName);
+    if (storedData != null) {
+      setState(() {
+        _userDetail = UserLogin.fromJson(storedData);
+        _firstNameController.text = _userDetail.firstName ?? '';
+        _lastNameController.text = _userDetail.lastName ?? '';
+        _emailController.text = _userDetail.email ?? '';
+        _mobileController.text = _userDetail.phone ?? '';
+        if (_userDetail.dob != null) {
+          try {
+            final parsedDate = DateFormat('yyyy-MM-dd').parse(_userDetail.dob!);
+            _dobController.text = DateFormat('MM-dd-yyyy').format(parsedDate);
+          } catch (e) {
+            _dobController.text = _userDetail.dob ?? '';
+          }
+        }
+      });
     }
   }
 
@@ -52,8 +69,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _emailController.dispose();
     _mobileController.dispose();
     _dobController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -66,12 +81,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (pickedFile != null) {
         setState(() {
-          selfieImage = pickedFile.path;
+          _selfieImagePath = pickedFile.path;
+          _selfieImageFile = File(pickedFile.path);
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
+      Get.snackbar(
+        'Error',
+        'Error picking image: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
     }
   }
@@ -80,7 +100,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _dobController.text.isNotEmpty
-          ? DateFormat('yyyy-MM-dd').parse(_dobController.text)
+          ? DateFormat('MM-dd-yyyy').parse(_dobController.text)
           : DateTime.now().subtract(const Duration(days: 365 * 18)),
       firstDate: DateTime(1950),
       lastDate: DateTime.now(),
@@ -102,98 +122,90 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (picked != null) {
       setState(() {
-        _dobController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _dobController.text = DateFormat('MM-dd-yyyy').format(picked);
       });
     }
   }
 
   Future<void> _updateProfile() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (selfieImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a profile image')),
-      );
-      return;
-    }
-
-    if (_passwordController.text.isNotEmpty &&
-        _passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      isLoading = true;
+      _isLoading = true;
     });
 
     try {
+      final token = _storage.read(tokenKey) ?? '';
+      if (token.isEmpty) {
+        throw Exception('Authentication token not found');
+      }
+
+      // Corrected headers declaration
+      Map<String, String> headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Authorization': token.toString(),
+        'Accept': 'application/json',
+      };
+
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('https://tech.skytechiez.co/api/update-profile'),
       );
 
-      // Add text fields
+      // Add form fields
       request.fields.addAll({
-        'first_name': _firstNameController.text,
-        'last_name': _lastNameController.text,
-        'dob': _dobController.text,
-        'phone': _mobileController.text,
-        'email': _emailController.text,
+        'first_name': _firstNameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
+        'dob': _dobController.text.trim(),
+        'phone': _mobileController.text.trim(),
+        'email': _emailController.text.trim(),
       });
 
-      // Add password if provided
-      if (_passwordController.text.isNotEmpty) {
-        request.fields['password'] = _passwordController.text;
+      // Attach profile image if available
+      if (_selfieImageFile != null) {
+        final file = await http.MultipartFile.fromPath(
+          'profile_image',
+          _selfieImageFile!.path,
+        );
+        request.files.add(file);
       }
 
-      // Add headers
-      request.headers.addAll({
-        'X-Requested-With': 'XMLHttpRequest',
-      });
+      request.headers.addAll(headers);
 
-      // Add profile image
-      request.files.add(
-        await http.MultipartFile.fromPath('profile_image', selfieImage!),
-      );
-
-      print("====> ${request.fields}");
-
-      // Send request
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-      print("Response: $responseData");
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      final responseData = jsonDecode(responseBody);
 
       if (response.statusCode == 200) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated successfully')),
-          );
-          Navigator.pop(context, true); // Return true to indicate success
-        }
+        // Update user details in local storage
+        _storage.write(userCollectionName, responseData['data']);
+        await _loadUserData();
+
+        Get.snackbar(
+          'Success',
+          'Profile updated successfully!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to update profile: $responseData')),
-          );
-        }
+        String errorMessage = responseData['message'] ??
+            response.reasonPhrase ??
+            'Failed to update profile';
+        throw Exception(errorMessage);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+      Get.snackbar(
+        'Error',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -228,21 +240,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             border: Border.all(
                                 color: AppColors.primaryBlue, width: 2),
                           ),
-                          child: selfieImage != null
+                          child: _selfieImagePath != null
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(60),
                                   child: Image.file(
-                                    File(selfieImage!),
+                                    File(_selfieImagePath!),
                                     width: 120,
                                     height: 120,
                                     fit: BoxFit.cover,
                                   ),
                                 )
-                              : const Icon(
-                                  Icons.person,
-                                  size: 60,
-                                  color: AppColors.grey,
-                                ),
+                              : _userDetail.profileUrl != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(60),
+                                      child: Image.network(
+                                        _userDetail.profileUrl!,
+                                        width: 120,
+                                        height: 120,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return const Icon(
+                                            Icons.person,
+                                            size: 60,
+                                            color: AppColors.grey,
+                                          );
+                                        },
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: AppColors.grey,
+                                    ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -338,13 +368,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your mobile number';
                     }
+                    if (!GetUtils.isPhoneNumber(value)) {
+                      return 'Please enter a valid phone number';
+                    }
                     return null;
                   },
                 ),
 
                 const SizedBox(height: 24),
                 // Update Button
-                isLoading
+                _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
                             color: AppColors.primaryBlue))

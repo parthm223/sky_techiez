@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/models/user_login.dart';
-
 import 'package:sky_techiez/screens/edit_profile_screen.dart';
 import 'package:sky_techiez/screens/id_selection_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
@@ -16,23 +15,16 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Sample user data - in a real app, this would come from your API or local storage
-  UserLogin userDetail = UserLogin();
+  UserLogin? userDetail;
+
   @override
   void initState() {
-    userDetail = UserLogin.fromJson(GetStorage().read(userCollectionName));
     super.initState();
+    final storedData = GetStorage().read(userCollectionName);
+    if (storedData != null) {
+      userDetail = UserLogin.fromJson(storedData);
+    }
   }
-
-  String name = 'John Doe';
-  String firstName = 'John';
-  String lastName = 'Doe';
-  String email = 'john.doe@example.com';
-  String phone = '+1 123-456-7890';
-  String dob = '1990-01-01';
-  String id = 'SKY12345';
-  String accountId = 'ACC987654';
-  String? profileImage;
 
   @override
   Widget build(BuildContext context) {
@@ -67,15 +59,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildProfileItem('Name:', name),
-                      _buildProfileItem('Email:', email),
-                      _buildProfileItem('Phone:', phone),
-                      _buildProfileItem('DOB:', dob),
-                      _buildProfileItem('ID:', id),
-                      _buildProfileItem('Account ID:', accountId),
+                      _buildProfileItem(
+                          'Name:',
+                          userDetail != null
+                              ? "${userDetail!.firstName} ${userDetail!.lastName}"
+                              : 'User Name'),
+                      _buildProfileItem('Email:', userDetail?.email ?? 'N/A'),
+                      _buildProfileItem('Phone:', userDetail?.phone ?? 'N/A'),
+                      _buildProfileItem('DOB:', userDetail?.dob ?? 'N/A'),
+                      _buildProfileItem(
+                          'ID:', userDetail?.id?.toString() ?? 'N/A'),
+                      _buildProfileItem(
+                          'Account ID:', userDetail?.accountId ?? 'N/A'),
                       const SizedBox(height: 8),
                       const Divider(color: AppColors.grey),
-                      const SizedBox(height: 8)
+                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
@@ -99,11 +97,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppColors.grey),
                         ),
-                        child: profileImage != null
+                        child: userDetail?.profileUrl != null
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.network(
-                                  profileImage!,
+                                  userDetail!.profileUrl!,
                                   width: 100,
                                   height: 100,
                                   fit: BoxFit.cover,
@@ -137,23 +135,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     builder: (context) => const EditProfileScreen(),
                     settings: RouteSettings(
                       arguments: {
-                        "first_name": firstName,
-                        "last_name": lastName,
-                        "dob": dob,
-                        "email": email,
-                        "mobile_number": phone,
-                        "selfie_image": profileImage,
+                        "first_name": userDetail?.firstName ?? '',
+                        "last_name": userDetail?.lastName ?? '',
+                        "dob": userDetail?.dob ?? '',
+                        "email": userDetail?.email ?? '',
+                        "mobile_number": userDetail?.phone ?? '',
+                        "selfie_image": userDetail?.profileUrl ?? '',
                       },
                     ),
                   ),
                 );
 
-                // If profile was updated successfully, refresh the profile data
                 if (result == true) {
-                  // In a real app, you would fetch the updated profile data here
                   setState(() {
-                    // This is just a placeholder to show how you would update the UI
-                    // In a real app, you would fetch the actual updated data
+                    final updatedData = GetStorage().read(userCollectionName);
+                    if (updatedData != null) {
+                      userDetail = UserLogin.fromJson(updatedData);
+                    }
                   });
                 }
               },
