@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sky_techiez/controllers/registration_controller.dart';
@@ -21,7 +22,6 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  // Get the registration controller
   final RegistrationController _registrationController =
       Get.find<RegistrationController>();
   String firstName = "";
@@ -33,13 +33,17 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
 
   @override
   void initState() {
-    firstName = Get.arguments["first_name"];
-    lastName = Get.arguments["last_name"];
-    dob = Get.arguments["dob"];
-    email = Get.arguments["email"];
-    mobile = Get.arguments["mobile_number"];
-    selfieImage = Get.arguments["selfie_image"];
     super.initState();
+    try {
+      firstName = Get.arguments["first_name"];
+      lastName = Get.arguments["last_name"];
+      dob = Get.arguments["dob"];
+      email = Get.arguments["email"];
+      mobile = Get.arguments["mobile_number"];
+      selfieImage = Get.arguments["selfie_image"];
+    } catch (e) {
+      print("Error retrieving arguments: $e");
+    }
   }
 
   @override
@@ -50,16 +54,26 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
   }
 
   Future<void> _register() async {
-    print('Register button pressed');
-    if (_formKey.currentState!.validate()) {
-      print('Form validation passed');
-      print('Password entered: ${_passwordController.text}');
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-      // Save password to controller
-      _registrationController.password.value = _passwordController.text;
+    _registrationController.isLoading.value = true;
+    _registrationController.password.value = _passwordController.text;
+
+    try {
+      // Check if the selfie image file exists
+      File selfieFile = File(selfieImage);
+      if (!selfieFile.existsSync()) {
+        Get.snackbar('Error', 'Selfie image file not found!',
+            backgroundColor: Colors.red, colorText: Colors.white);
+        _registrationController.isLoading.value = false;
+        return;
+      }
 
       var request = http.MultipartRequest(
           'POST', Uri.parse('https://tech.skytechiez.co/api/register'));
+
       request.fields.addAll({
         'first_name': firstName,
         'last_name': lastName,
@@ -68,58 +82,42 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
         'password': _passwordController.text,
         'email': email,
       });
-      var headers = {'X-Requested-With': 'XMLHttpRequest'};
-      request.headers.addAll(headers);
-      print("====> ${request.fields}");
+
       request.files
           .add(await http.MultipartFile.fromPath('profile_image', selfieImage));
-      print("files =>${request.files.first.filename}");
+
+      request.headers.addAll({
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'multipart/form-data',
+      });
+
       var response = await request.send();
+      String responseBody = await response.stream.bytesToString();
+      print("API Response: $responseBody");
 
       if (response.statusCode == 200) {
+        Get.snackbar('Success', 'Account created successfully!',
+            backgroundColor: Colors.green, colorText: Colors.white);
         Get.offAll(() => const LoginScreen());
-        print(
-            "=============================> ${await response.stream.bytesToString()}");
       } else {
-        print(await response.stream.bytesToString());
+        Get.snackbar('Error', 'Registration failed: $responseBody',
+            backgroundColor: Colors.red, colorText: Colors.white);
       }
-
-      // try {
-      //   print('Calling register function in controller');
-      //   final result = await _registrationController.register();
-
-      //   print('Registration result: $result');
-      //   if (result['success']) {
-      //     print('Registration successful');
-      //     Get.snackbar(
-      //       'Success',
-      //       'Account created successfully',
-      //       backgroundColor: AppColors.primaryBlue,
-      //       colorText: Colors.white,
-      //     );
-
-      //     // Navigate to login screen
-      //     Get.offAll(() => const LoginScreen());
-      //   } else {
-      //     print('Registration failed: ${result['message']}');
-      //     Get.snackbar(
-      //       'Error',
-      //       result['message'] ?? 'Registration failed',
-      //       backgroundColor: Colors.red,
-      //       colorText: Colors.white,
-      //     );
-      //   }
-      // } catch (e) {
-      //   print('Error during registration: $e');
-      //   Get.snackbar(
-      //     'Error',
-      //     'Error: $e',
-      //     backgroundColor: Colors.red,
-      //     colorText: Colors.white,
-      //   );
-      // }
-    } else {
-      print('Form validation failed');
+    } on SocketException {
+      Get.snackbar(
+          'Network Error', 'No internet connection! Please check your network.',
+          backgroundColor: Colors.red, colorText: Colors.white);
+    } on HttpException {
+      Get.snackbar('Server Error', 'Could not connect to the server!',
+          backgroundColor: Colors.red, colorText: Colors.white);
+    } on FormatException {
+      Get.snackbar('Invalid Response', 'Unexpected server response format!',
+          backgroundColor: Colors.red, colorText: Colors.white);
+    } catch (e) {
+      Get.snackbar('Error', 'Something went wrong: $e',
+          backgroundColor: Colors.red, colorText: Colors.white);
+    } finally {
+      _registrationController.isLoading.value = false;
     }
   }
 
@@ -161,17 +159,13 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                       setState(() {
                         _obscurePassword = !_obscurePassword;
                       });
-                      print('Password visibility toggled: $_obscurePassword');
                     },
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      print('Password validation failed: empty field');
                       return 'Please enter a password';
                     }
                     if (value.length < 6) {
-                      print(
-                          'Password validation failed: less than 6 characters');
                       return 'Password must be at least 6 characters';
                     }
                     return null;
@@ -194,18 +188,13 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                       setState(() {
                         _obscureConfirmPassword = !_obscureConfirmPassword;
                       });
-                      print(
-                          'Confirm Password visibility toggled: $_obscureConfirmPassword');
                     },
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      print('Confirm Password validation failed: empty field');
                       return 'Please confirm your password';
                     }
                     if (value != _passwordController.text) {
-                      print(
-                          'Confirm Password validation failed: passwords do not match');
                       return 'Passwords do not match';
                     }
                     return null;

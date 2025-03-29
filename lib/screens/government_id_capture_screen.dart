@@ -65,64 +65,64 @@ class _GovernmentIdCaptureScreenState extends State<GovernmentIdCaptureScreen> {
     );
   }
 
-  Widget _buildStepIndicator() {
-    return Container(
-      color: Colors.black,
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(5, (index) {
-          final stepNumber = index + 1;
-          final isCurrentStep = stepNumber == currentStep;
-          final isPastStep = stepNumber < currentStep;
+  // Widget _buildStepIndicator() {
+  //   return Container(
+  //     color: Colors.black,
+  //     padding: const EdgeInsets.symmetric(vertical: 16.0),
+  //     child: Row(
+  //       mainAxisAlignment: MainAxisAlignment.center,
+  //       children: List.generate(5, (index) {
+  //         final stepNumber = index + 1;
+  //         final isCurrentStep = stepNumber == currentStep;
+  //         final isPastStep = stepNumber < currentStep;
 
-          return Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isCurrentStep
-                      ? Colors.blue
-                      : (isPastStep
-                          ? Colors.blue.withOpacity(0.5)
-                          : Colors.grey.shade800),
-                  border: Border.all(
-                    color: isCurrentStep
-                        ? Colors.blue
-                        : (isPastStep
-                            ? Colors.blue.withOpacity(0.5)
-                            : Colors.grey.shade700),
-                    width: 1,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    '$stepNumber',
-                    style: TextStyle(
-                      color: isCurrentStep || isPastStep
-                          ? Colors.white
-                          : Colors.grey,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              if (index < 4)
-                Container(
-                  width: 24,
-                  height: 1,
-                  color: isPastStep
-                      ? Colors.blue.withOpacity(0.5)
-                      : Colors.grey.shade700,
-                ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
+  //         return Row(
+  //           children: [
+  //             Container(
+  //               width: 32,
+  //               height: 32,
+  //               decoration: BoxDecoration(
+  //                 shape: BoxShape.circle,
+  //                 color: isCurrentStep
+  //                     ? Colors.blue
+  //                     : (isPastStep
+  //                         ? Colors.blue.withOpacity(0.5)
+  //                         : Colors.grey.shade800),
+  //                 border: Border.all(
+  //                   color: isCurrentStep
+  //                       ? Colors.blue
+  //                       : (isPastStep
+  //                           ? Colors.blue.withOpacity(0.5)
+  //                           : Colors.grey.shade700),
+  //                   width: 1,
+  //                 ),
+  //               ),
+  //               child: Center(
+  //                 child: Text(
+  //                   '$stepNumber',
+  //                   style: TextStyle(
+  //                     color: isCurrentStep || isPastStep
+  //                         ? Colors.white
+  //                         : Colors.grey,
+  //                     fontWeight: FontWeight.bold,
+  //                   ),
+  //                 ),
+  //               ),
+  //             ),
+  //             if (index < 4)
+  //               Container(
+  //                 width: 24,
+  //                 height: 1,
+  //                 color: isPastStep
+  //                     ? Colors.blue.withOpacity(0.5)
+  //                     : Colors.grey.shade700,
+  //               ),
+  //           ],
+  //         );
+  //       }),
+  //     ),
+  //   );
+  // }
 
   Widget _buildDocumentUploadSection({
     required bool isActive,

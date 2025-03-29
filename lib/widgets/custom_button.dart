@@ -3,11 +3,12 @@ import 'package:sky_techiez/theme/app_theme.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final Function()? onPressed; // Changed from VoidCallback to Function()?
+  final Function()? onPressed;
   final bool isOutlined;
   final double? width;
   final EdgeInsets? padding;
   final IconData? icon;
+  final bool isLoading; // Added isLoading parameter
 
   const CustomButton({
     super.key,
@@ -17,6 +18,7 @@ class CustomButton extends StatelessWidget {
     this.width,
     this.padding,
     this.icon,
+    this.isLoading = false, // Default to false
   });
 
   @override
@@ -41,7 +43,28 @@ class CustomButton extends StatelessWidget {
             ),
           );
 
-    if (icon != null) {
+    // Show loading indicator if isLoading is true
+    final child = isLoading
+        ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
+            ),
+          )
+        : icon != null
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon),
+                  const SizedBox(width: 8),
+                  Text(text),
+                ],
+              )
+            : Text(text);
+
+    if (icon != null && !isLoading) {
       return isOutlined
           ? OutlinedButton.icon(
               style: buttonStyle,
@@ -61,14 +84,14 @@ class CustomButton extends StatelessWidget {
       width: width,
       child: isOutlined
           ? OutlinedButton(
-              onPressed: onPressed,
+              onPressed: isLoading ? null : onPressed,
               style: buttonStyle,
-              child: Text(text),
+              child: child,
             )
           : ElevatedButton(
-              onPressed: onPressed,
+              onPressed: isLoading ? null : onPressed,
               style: buttonStyle,
-              child: Text(text),
+              child: child,
             ),
     );
   }

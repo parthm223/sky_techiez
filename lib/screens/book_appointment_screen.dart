@@ -1,7 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
+
+import '../widgets/session_string.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   const BookAppointmentScreen({super.key});
@@ -18,6 +23,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   final _timeController = TextEditingController();
   String _selectedIssueType = 'Technical Support';
   String? _selectedTechnicalSupportType;
+  bool _isLoading = false;
 
   final List<String> _issueTypes = [
     'Technical Support',
@@ -68,7 +74,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     );
     if (picked != null) {
       setState(() {
-        _dateController.text = "${picked.day}/${picked.month}/${picked.year}";
+        // Changed from day/month/year to month/day/year
+        _dateController.text = "${picked.month}/${picked.day}/${picked.year}";
       });
     }
   }
@@ -94,6 +101,110 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       setState(() {
         _timeController.text = picked.format(context);
       });
+    }
+  }
+
+  Future<void> _bookAppointment() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Map issue types to their corresponding IDs
+        final issueTypeIdMap = {
+          'Technical Support': '1',
+          'Account Management': '2',
+          'Billing Inquiry': '3',
+          'Product Demo': '4',
+          'Consultation': '5',
+        };
+
+        // Get the issue type ID
+        final issueTypeId = issueTypeIdMap[_selectedIssueType] ?? '1';
+
+        // Prepare the issue text
+        String issueText = _issueController.text;
+        if (_selectedIssueType == 'Technical Support' &&
+            _selectedTechnicalSupportType != null) {
+          issueText = '${_selectedTechnicalSupportType}: $issueText';
+        }
+
+        // Prepare headers
+        final headers = <String, String>{
+          'X-Requested-With': 'XMLHttpRequest',
+          'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+        };
+
+        // Create the request
+        var request = http.MultipartRequest('POST',
+            Uri.parse('https://tech.skytechiez.co/api/book-appointment'));
+
+        // Add fields
+        request.fields.addAll({
+          'issue_type_id': issueTypeId,
+          'issue': issueText,
+          'date': _dateController.text,
+          'time': _timeController.text,
+          'account_id': _accountIdController.text,
+        });
+
+        // Add headers
+        request.headers.addAll(headers);
+
+        // Send the request
+        http.StreamedResponse response = await request.send();
+
+        if (response.statusCode == 200) {
+          final responseBody = await response.stream.bytesToString();
+          final jsonResponse = jsonDecode(responseBody);
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(jsonResponse['message'] ??
+                    'Appointment booked successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            // Clear the form after successful submission
+            _formKey.currentState?.reset();
+            setState(() {
+              _selectedIssueType = 'Technical Support';
+              _selectedTechnicalSupportType = null;
+            });
+          }
+        } else {
+          final errorResponse = await response.stream.bytesToString();
+          final jsonError = jsonDecode(errorResponse);
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text(jsonError['message'] ?? 'Failed to book appointment'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (context.mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
@@ -164,7 +275,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                           if (newValue != null) {
                             setState(() {
                               _selectedIssueType = newValue;
-                              // Reset technical support type when changing issue type
                               if (newValue != 'Technical Support') {
                                 _selectedTechnicalSupportType = null;
                               }
@@ -176,7 +286,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   ),
                 ],
               ),
-              // Show Technical Support dropdown if Technical Support is selected
               if (_selectedIssueType == 'Technical Support') ...[
                 const SizedBox(height: 16),
                 Column(
@@ -311,25 +420,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Divider(
-                thickness: 2.5,
-              ),
               const SizedBox(height: 24),
               CustomButton(
                 text: 'Submit',
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // In a real app, you would submit the appointment here
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Appointment booked successfully'),
-                        backgroundColor: AppColors.primaryBlue,
-                      ),
-                    );
-                    Navigator.pop(context);
-                  }
-                },
+                onPressed: _isLoading ? null : _bookAppointment,
+                isLoading: _isLoading,
               ),
             ],
           ),

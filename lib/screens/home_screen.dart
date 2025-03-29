@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:sky_techiez/controllers/auth_controller.dart';
+import 'package:sky_techiez/models/user_login.dart';
 import 'package:sky_techiez/screens/about_us_screen.dart';
+import 'package:sky_techiez/screens/login_screen.dart';
 import 'package:sky_techiez/screens/profile_screen.dart';
 import 'package:sky_techiez/screens/privacy_policy_screen.dart';
 import 'package:sky_techiez/screens/refund_policy_screen.dart';
@@ -9,6 +14,7 @@ import 'package:sky_techiez/screens/terms_conditions_screen.dart';
 import 'package:sky_techiez/screens/ticket_status_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 
+import '../widgets/session_string.dart';
 import 'home_content.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,6 +25,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  UserLogin userDetail = UserLogin();
+
+  @override
+  void initState() {
+    userDetail = UserLogin.fromJson(GetStorage().read(userCollectionName));
+    super.initState();
+  }
+
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
@@ -31,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Get.put(AuthController());
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home', style: TextStyle(color: Colors.white)),
@@ -71,6 +86,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Obx(() {
+                        //   return
                         Row(
                           children: [
                             Container(
@@ -81,30 +98,39 @@ class _HomeScreenState extends State<HomeScreen> {
                                   width: 2,
                                 ),
                               ),
-                              child: const CircleAvatar(
-                                radius: 30,
-                                backgroundColor: AppColors.white,
-                                child: Icon(
-                                  Icons.person,
-                                  size: 35,
-                                  color: AppColors.primaryBlue,
-                                ),
-                              ),
+                              child: userDetail.profileUrl != null
+                                  ? CircleAvatar(
+                                      radius: 30,
+                                      backgroundImage:
+                                          NetworkImage(userDetail.profileUrl!),
+                                    )
+                                  : const CircleAvatar(
+                                      radius: 30,
+                                      backgroundColor: AppColors.white,
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 35,
+                                        color: AppColors.primaryBlue,
+                                      ),
+                                    ),
                             ),
                             const SizedBox(width: 15),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'User Name',
-                                  style: TextStyle(
+                                Text(
+                                  // ignore: unnecessary_null_comparison
+                                  userDetail != null
+                                      ? '${userDetail.firstName} ${userDetail.lastName}'
+                                      : 'User Name',
+                                  style: const TextStyle(
                                     color: AppColors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 Text(
-                                  'user@example.com',
+                                  userDetail.email ?? 'user@example.com',
                                   style: TextStyle(
                                     color: AppColors.white.withOpacity(0.8),
                                     fontSize: 14,
@@ -114,6 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
+                        // }),
                         const SizedBox(height: 20),
                         Center(
                           child: Image.asset(
@@ -233,7 +260,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 onPressed: () {
-                  // Handle logout
+                  // Clear user session
+                  GetStorage().remove(isLoginSession);
+                  GetStorage().remove(tokenKey);
+                  GetStorage().remove(userCollectionName);
+
+                  // Navigate to Login Screen
+                  Get.offAll(() => LoginScreen());
                 },
               ),
             ),

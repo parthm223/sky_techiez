@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sky_techiez/controllers/auth_controller.dart';
 import 'package:sky_techiez/screens/create_account_screen.dart';
-import 'package:sky_techiez/screens/home_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';

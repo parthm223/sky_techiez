@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:sky_techiez/widgets/session_string.dart';
 
 import '../screens/home_screen.dart';
 
@@ -102,6 +104,9 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        GetStorage().write(isLoginSession, true);
+        GetStorage().write(tokenKey, "Bearer ${data["token"]}");
+        GetStorage().write(userCollectionName, data["user"]);
         Get.offAll(() => const HomeScreen());
         return {
           'success': data['success'] ?? false,
@@ -112,7 +117,7 @@ class AuthService {
       } else {
         return {
           'success': false,
-          'message': 'Login failed with status code: ${response.statusCode}',
+          'message': json.decode(response.body)["message"],
         };
       }
     } catch (e) {

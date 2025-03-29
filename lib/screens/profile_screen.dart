@@ -1,10 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:sky_techiez/models/user_login.dart';
+
+import 'package:sky_techiez/screens/edit_profile_screen.dart';
 import 'package:sky_techiez/screens/id_selection_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
+import 'package:sky_techiez/widgets/session_string.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  // Sample user data - in a real app, this would come from your API or local storage
+  UserLogin userDetail = UserLogin();
+  @override
+  void initState() {
+    userDetail = UserLogin.fromJson(GetStorage().read(userCollectionName));
+    super.initState();
+  }
+
+  String name = 'John Doe';
+  String firstName = 'John';
+  String lastName = 'Doe';
+  String email = 'john.doe@example.com';
+  String phone = '+1 123-456-7890';
+  String dob = '1990-01-01';
+  String id = 'SKY12345';
+  String accountId = 'ACC987654';
+  String? profileImage;
 
   @override
   Widget build(BuildContext context) {
@@ -39,12 +67,12 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildProfileItem('Name:', 'John Doe'),
-                      _buildProfileItem('Email:', 'john.doe@example.com'),
-                      _buildProfileItem('Phone:', '+1 123-456-7890'),
-                      _buildProfileItem('DOB:', '01/01/1990'),
-                      _buildProfileItem('ID:', 'SKY12345'),
-                      _buildProfileItem('Account ID:', 'ACC987654'),
+                      _buildProfileItem('Name:', name),
+                      _buildProfileItem('Email:', email),
+                      _buildProfileItem('Phone:', phone),
+                      _buildProfileItem('DOB:', dob),
+                      _buildProfileItem('ID:', id),
+                      _buildProfileItem('Account ID:', accountId),
                       const SizedBox(height: 8),
                       const Divider(color: AppColors.grey),
                       const SizedBox(height: 8)
@@ -71,18 +99,28 @@ class ProfileScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppColors.grey),
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.person,
-                            size: 60,
-                            color: AppColors.grey,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text('Change Photo'),
+                        child: profileImage != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  profileImage!,
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: AppColors.grey,
+                                    );
+                                  },
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: AppColors.grey,
+                              ),
                       ),
                     ],
                   ),
@@ -92,7 +130,33 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 24),
             CustomButton(
               text: 'Edit Profile',
-              onPressed: () {},
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const EditProfileScreen(),
+                    settings: RouteSettings(
+                      arguments: {
+                        "first_name": firstName,
+                        "last_name": lastName,
+                        "dob": dob,
+                        "email": email,
+                        "mobile_number": phone,
+                        "selfie_image": profileImage,
+                      },
+                    ),
+                  ),
+                );
+
+                // If profile was updated successfully, refresh the profile data
+                if (result == true) {
+                  // In a real app, you would fetch the updated profile data here
+                  setState(() {
+                    // This is just a placeholder to show how you would update the UI
+                    // In a real app, you would fetch the actual updated data
+                  });
+                }
+              },
             ),
             const SizedBox(height: 16),
             CustomButton(
