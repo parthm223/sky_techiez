@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -30,12 +31,23 @@ class SplashController extends GetxController
   }
 
   _launchPage() async {
-    await Future.delayed(const Duration(seconds: 1), () {});
+    // Generate a random delay between 7-9 seconds
+    final random = Random();
+    final delaySeconds = 5 + random.nextInt(2); // Random between 7-9 seconds
+
+    await Future.delayed(Duration(seconds: delaySeconds), () {});
+
     bool whereLogin = GetStorage().hasData(isLoginSession);
     if (whereLogin == false) {
       Get.offAll(() => const WelcomeScreen());
     } else {
       Get.offAll(() => const HomeScreen());
     }
+  }
+
+  @override
+  void onClose() {
+    _controller.dispose();
+    super.onClose();
   }
 }
