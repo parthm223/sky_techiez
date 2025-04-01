@@ -21,18 +21,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   final _issueController = TextEditingController();
   final _dateController = TextEditingController();
   final _timeController = TextEditingController();
-  String _selectedIssueType = 'Technical Support';
+  String? _selectedIssueTypeId;
+  String? _selectedIssueTypeName;
   String? _selectedTechnicalSupportType;
   bool _isLoading = false;
+  bool _isFetchingIssueTypes = false;
 
-  final List<String> _issueTypes = [
-    'Technical Support',
-    'Account Management',
-    'Billing Inquiry',
-    'Product Demo',
-    'Consultation',
-  ];
+  // Map to store issue types from API (id -> name)
+  Map<String, String> _issueTypes = {};
 
+  // Technical support sub-types
   final List<String> _technicalSupportTypes = [
     'Desktop Support',
     'Wireless Printer Setup',
@@ -45,7 +43,86 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    print('Initializing BookAppointmentScreen...');
+    _fetchIssueTypes();
+  }
+
+  Future<void> _fetchIssueTypes() async {
+    print('Fetching issue types from API...');
+    setState(() {
+      _isFetchingIssueTypes = true;
+    });
+
+    try {
+      final url = 'https://tech.skytechiez.co/api/issue-type-dropdown';
+      print('Making GET request to: $url');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+        },
+      );
+
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('Parsed response data: $data');
+
+        if (data['issue_types'] != null && data['issue_types'] is Map) {
+          setState(() {
+            _issueTypes = Map<String, String>.from(data['issue_types']);
+            print('Loaded issue types: $_issueTypes');
+
+            if (_issueTypes.isNotEmpty) {
+              _selectedIssueTypeId = _issueTypes.keys.first;
+              _selectedIssueTypeName = _issueTypes[_selectedIssueTypeId];
+              print(
+                  'Default selected issue type: $_selectedIssueTypeId - $_selectedIssueTypeName');
+            }
+          });
+        }
+      } else {
+        print(
+            'Failed to load issue types. Status code: ${response.statusCode}');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text('Failed to load issue types: ${response.statusCode}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error fetching issue types: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error fetching issue types: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        print('Finished fetching issue types');
+        setState(() {
+          _isFetchingIssueTypes = false;
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    print('Disposing BookAppointmentScreen...');
     _accountIdController.dispose();
     _issueController.dispose();
     _dateController.dispose();
@@ -54,6 +131,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    print('Opening date picker...');
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now().add(const Duration(days: 1)),
@@ -73,14 +151,18 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       },
     );
     if (picked != null) {
+      print('Selected date: $picked');
       setState(() {
-        // Changed from day/month/year to month/day/year
         _dateController.text = "${picked.month}/${picked.day}/${picked.year}";
+        print('Formatted date: ${_dateController.text}');
       });
+    } else {
+      print('Date selection cancelled');
     }
   }
 
   Future<void> _selectTime(BuildContext context) async {
+    print('Opening time picker...');
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
@@ -98,66 +180,82 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       },
     );
     if (picked != null) {
+      print('Selected time: $picked');
       setState(() {
         _timeController.text = picked.format(context);
+        print('Formatted time: ${_timeController.text}');
       });
+    } else {
+      print('Time selection cancelled');
     }
   }
 
   Future<void> _bookAppointment() async {
+    print('Attempting to book appointment...');
     if (_formKey.currentState!.validate()) {
+      print('Form validation passed');
       setState(() {
         _isLoading = true;
       });
 
       try {
-        // Map issue types to their corresponding IDs
-        final issueTypeIdMap = {
-          'Technical Support': '1',
-          'Account Management': '2',
-          'Billing Inquiry': '3',
-          'Product Demo': '4',
-          'Consultation': '5',
-        };
-
-        // Get the issue type ID
-        final issueTypeId = issueTypeIdMap[_selectedIssueType] ?? '1';
-
-        // Prepare the issue text
         String issueText = _issueController.text;
-        if (_selectedIssueType == 'Technical Support' &&
+        print('Original issue text: $issueText');
+
+        if (_selectedIssueTypeName == 'Technical Support' &&
             _selectedTechnicalSupportType != null) {
           issueText = '${_selectedTechnicalSupportType}: $issueText';
+          print('Modified issue text with technical support type: $issueText');
         }
 
-        // Prepare headers
         final headers = <String, String>{
           'X-Requested-With': 'XMLHttpRequest',
           'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
         };
+        print('Request headers: $headers');
 
-        // Create the request
-        var request = http.MultipartRequest('POST',
-            Uri.parse('https://tech.skytechiez.co/api/book-appointment'));
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('https://tech.skytechiez.co/api/book-appointment'),
+        );
 
-        // Add fields
-        request.fields.addAll({
-          'issue_type_id': issueTypeId,
+        final requestFields = {
+          'issue_type_id': _selectedIssueTypeId ?? '1',
           'issue': issueText,
           'date': _dateController.text,
           'time': _timeController.text,
           'account_id': _accountIdController.text,
-        });
+        };
+        request.fields.addAll(requestFields);
 
-        // Add headers
+        print('Request fields: $requestFields');
         request.headers.addAll(headers);
 
-        // Send the request
+        print('Sending appointment booking request...');
         http.StreamedResponse response = await request.send();
 
+        print('Received response with status: ${response.statusCode}');
+        // Inside the _bookAppointment() method, after successful booking
         if (response.statusCode == 200) {
           final responseBody = await response.stream.bytesToString();
+          print('Raw response body: $responseBody');
+
           final jsonResponse = jsonDecode(responseBody);
+          print('Parsed response: $jsonResponse');
+
+          // Save appointment details to local storage
+          final appointmentDetails = {
+            'account_id': _accountIdController.text,
+            'issue_type': _selectedIssueTypeName,
+            'issue': _issueController.text,
+            'date': _dateController.text,
+            'time': _timeController.text,
+            'created_at': DateTime.now().toString(),
+          };
+
+          // Save to GetStorage
+          GetStorage().write('latest_appointment', appointmentDetails);
+          print('Saved appointment details to storage: $appointmentDetails');
 
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -168,16 +266,25 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               ),
             );
 
-            // Clear the form after successful submission
+            // Navigate back to home screen
+            Navigator.pop(context);
+
             _formKey.currentState?.reset();
             setState(() {
-              _selectedIssueType = 'Technical Support';
+              if (_issueTypes.isNotEmpty) {
+                _selectedIssueTypeId = _issueTypes.keys.first;
+                _selectedIssueTypeName = _issueTypes[_selectedIssueTypeId];
+              }
               _selectedTechnicalSupportType = null;
             });
+            print('Appointment booked successfully. Form reset.');
           }
         } else {
           final errorResponse = await response.stream.bytesToString();
+          print('Error response body: $errorResponse');
+
           final jsonError = jsonDecode(errorResponse);
+          print('Parsed error: $jsonError');
 
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -190,6 +297,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           }
         }
       } catch (e) {
+        print('Error booking appointment: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -199,17 +307,21 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           );
         }
       } finally {
+        print('Finished booking attempt');
         if (context.mounted) {
           setState(() {
             _isLoading = false;
           });
         }
       }
+    } else {
+      print('Form validation failed');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    print('Building BookAppointmentScreen...');
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book Appointment'),
@@ -258,35 +370,51 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                       color: AppColors.lightGrey,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedIssueType,
-                        isExpanded: true,
-                        dropdownColor: AppColors.darkBackground,
-                        style: const TextStyle(color: AppColors.white),
-                        hint: const Text('Select Issue Type'),
-                        items: _issueTypes.map((String type) {
-                          return DropdownMenuItem<String>(
-                            value: type,
-                            child: Text(type),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedIssueType = newValue;
-                              if (newValue != 'Technical Support') {
-                                _selectedTechnicalSupportType = null;
-                              }
-                            });
-                          }
-                        },
-                      ),
-                    ),
+                    child: _isFetchingIssueTypes
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        : DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedIssueTypeId,
+                              isExpanded: true,
+                              dropdownColor: AppColors.darkBackground,
+                              style: const TextStyle(color: AppColors.white),
+                              hint: const Text('Select Issue Type'),
+                              items: _issueTypes.entries.map((entry) {
+                                print(
+                                    'Adding dropdown item: ${entry.key} - ${entry.value}');
+                                return DropdownMenuItem<String>(
+                                  value: entry.key,
+                                  child: Text(entry.value),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  print(
+                                      'Selected issue type changed to: $newValue');
+                                  setState(() {
+                                    _selectedIssueTypeId = newValue;
+                                    _selectedIssueTypeName =
+                                        _issueTypes[newValue];
+                                    print(
+                                        'New selected issue type: $_selectedIssueTypeName');
+                                    if (_selectedIssueTypeName !=
+                                        'Technical Support') {
+                                      print(
+                                          'Clearing technical support type selection');
+                                      _selectedTechnicalSupportType = null;
+                                    }
+                                  });
+                                }
+                              },
+                            ),
+                          ),
                   ),
                 ],
               ),
-              if (_selectedIssueType == 'Technical Support') ...[
+              if (_selectedIssueTypeName == 'Technical Support') ...[
                 const SizedBox(height: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,6 +449,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                           }).toList(),
                           onChanged: (String? newValue) {
                             if (newValue != null) {
+                              print(
+                                  'Selected technical support type changed to: $newValue');
                               setState(() {
                                 _selectedTechnicalSupportType = newValue;
                               });

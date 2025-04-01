@@ -95,6 +95,7 @@ class AuthService {
         Uri.parse('$baseUrl/login'),
         body: {
           'email': emailOrPhone, // API might accept either email or phone
+          'phone': emailOrPhone, // API might accept either email or phone
           'password': password,
         },
       );

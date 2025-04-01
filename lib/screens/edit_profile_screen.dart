@@ -143,7 +143,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Corrected headers declaration
       Map<String, String> headers = {
         'X-Requested-With': 'XMLHttpRequest',
-        'Authorization': token.toString(),
+        'Authorization': GetStorage().read(tokenKey),
         'Accept': 'application/json',
       };
 
@@ -345,6 +345,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                 // Email
                 _buildTextField(
+                  readOnly: true,
                   controller: _emailController,
                   label: 'Email',
                   keyboardType: TextInputType.emailAddress,
@@ -400,6 +401,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required String label,
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
+    bool readOnly = false,
     IconData? suffixIcon,
     VoidCallback? onSuffixIconPressed,
     String? Function(String?)? validator,
@@ -408,6 +410,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: controller,
+        readOnly: readOnly,
         keyboardType: keyboardType,
         obscureText: obscureText,
         style: const TextStyle(color: Colors.white),

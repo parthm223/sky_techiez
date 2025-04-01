@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/screens/book_appointment_screen.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
 import 'package:sky_techiez/screens/services_screen.dart';
@@ -7,8 +8,30 @@ import 'package:sky_techiez/screens/subscriptions_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
+
+  @override
+  State<HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  Map<String, dynamic>? _latestAppointment;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppointmentDetails();
+  }
+
+  void _loadAppointmentDetails() {
+    final appointmentData = GetStorage().read('latest_appointment');
+    if (appointmentData != null) {
+      setState(() {
+        _latestAppointment = Map<String, dynamic>.from(appointmentData);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +62,84 @@ class HomeContent extends StatelessWidget {
           const SizedBox(height: 16),
           Divider(),
           const SizedBox(height: 16),
+
+          // Display appointment details if available
+          if (_latestAppointment != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.primaryBlue, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Your Upcoming Appointment',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close,
+                            size: 18, color: AppColors.grey),
+                        onPressed: () {
+                          setState(() {
+                            _latestAppointment = null;
+                            GetStorage().remove('latest_appointment');
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildAppointmentDetailRow(
+                    'Account ID:',
+                    _latestAppointment!['account_id'] ?? 'N/A',
+                  ),
+                  _buildAppointmentDetailRow(
+                    'Issue Type:',
+                    _latestAppointment!['issue_type'] ?? 'N/A',
+                  ),
+                  _buildAppointmentDetailRow(
+                    'Issue:',
+                    _latestAppointment!['issue'] ?? 'N/A',
+                  ),
+                  _buildAppointmentDetailRow(
+                    'Date & Time:',
+                    '${_latestAppointment!['date'] ?? 'N/A'} at ${_latestAppointment!['time'] ?? 'N/A'}',
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Confirmed',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -108,14 +209,16 @@ class HomeContent extends StatelessWidget {
                           const SizedBox(height: 16),
                           CustomButton(
                             text: 'Book Appointment',
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       const BookAppointmentScreen(),
                                 ),
                               );
+                              // Reload appointment details when returning from booking screen
+                              _loadAppointmentDetails();
                             },
                             width: 160,
                           ),
@@ -280,6 +383,35 @@ class HomeContent extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppointmentDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                color: AppColors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
