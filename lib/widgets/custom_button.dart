@@ -8,7 +8,8 @@ class CustomButton extends StatelessWidget {
   final double? width;
   final EdgeInsets? padding;
   final IconData? icon;
-  final bool isLoading; // Added isLoading parameter
+  final bool isLoading;
+  final Color? backgroundColor;
 
   const CustomButton({
     super.key,
@@ -18,7 +19,8 @@ class CustomButton extends StatelessWidget {
     this.width,
     this.padding,
     this.icon,
-    this.isLoading = false, // Default to false
+    this.isLoading = false,
+    this.backgroundColor,
   });
 
   @override
@@ -34,7 +36,7 @@ class CustomButton extends StatelessWidget {
             ),
           )
         : ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBlue,
+            backgroundColor: backgroundColor ?? AppColors.primaryBlue,
             foregroundColor: AppColors.white,
             padding: padding ?? const EdgeInsets.symmetric(vertical: 16),
             minimumSize: Size(width ?? double.infinity, 48),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:sky_techiez/servies/appointment_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
@@ -17,7 +18,6 @@ class BookAppointmentScreen extends StatefulWidget {
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _accountIdController = TextEditingController();
   final _issueController = TextEditingController();
   final _dateController = TextEditingController();
   final _timeController = TextEditingController();
@@ -123,7 +123,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   @override
   void dispose() {
     print('Disposing BookAppointmentScreen...');
-    _accountIdController.dispose();
     _issueController.dispose();
     _dateController.dispose();
     _timeController.dispose();
@@ -224,7 +223,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           'issue': issueText,
           'date': _dateController.text,
           'time': _timeController.text,
-          'account_id': _accountIdController.text,
         };
         request.fields.addAll(requestFields);
 
@@ -235,7 +233,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         http.StreamedResponse response = await request.send();
 
         print('Received response with status: ${response.statusCode}');
-        // Inside the _bookAppointment() method, after successful booking
         if (response.statusCode == 200) {
           final responseBody = await response.stream.bytesToString();
           print('Raw response body: $responseBody');
@@ -243,19 +240,23 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           final jsonResponse = jsonDecode(responseBody);
           print('Parsed response: $jsonResponse');
 
-          // Save appointment details to local storage
+          // Generate a unique appointment ID
+          final appointmentId = AppointmentService.generateAppointmentId();
+
+          // Save appointment details to shared service
           final appointmentDetails = {
-            'account_id': _accountIdController.text,
+            'id': appointmentId,
             'issue_type': _selectedIssueTypeName,
-            'issue': _issueController.text,
+            'issue': issueText,
             'date': _dateController.text,
             'time': _timeController.text,
+            'status': 'Scheduled',
             'created_at': DateTime.now().toString(),
           };
 
-          // Save to GetStorage
-          GetStorage().write('latest_appointment', appointmentDetails);
-          print('Saved appointment details to storage: $appointmentDetails');
+          // Save to shared service
+          AppointmentService.saveAppointment(appointmentDetails);
+          print('Saved appointment details: $appointmentDetails');
 
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -340,18 +341,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              CustomTextField(
-                label: 'Account ID',
-                hint: 'Enter your account ID',
-                controller: _accountIdController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your account ID';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

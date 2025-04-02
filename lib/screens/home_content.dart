@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/screens/book_appointment_screen.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
 import 'package:sky_techiez/screens/services_screen.dart';
 import 'package:sky_techiez/screens/subscriptions_screen.dart';
+import 'package:sky_techiez/servies/appointment_service.dart';
 
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
@@ -25,10 +25,10 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   void _loadAppointmentDetails() {
-    final appointmentData = GetStorage().read('latest_appointment');
+    final appointmentData = AppointmentService.getAppointment();
     if (appointmentData != null) {
       setState(() {
-        _latestAppointment = Map<String, dynamic>.from(appointmentData);
+        _latestAppointment = appointmentData;
       });
     }
   }
@@ -87,23 +87,19 @@ class _HomeContentState extends State<HomeContent> {
                           color: AppColors.primaryBlue,
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close,
-                            size: 18, color: AppColors.grey),
-                        onPressed: () {
-                          setState(() {
-                            _latestAppointment = null;
-                            GetStorage().remove('latest_appointment');
-                          });
-                        },
-                      ),
+                      // IconButton(
+                      //   icon: const Icon(Icons.close,
+                      //       size: 18, color: AppColors.grey),
+                      //   onPressed: () {
+                      //     setState(() {
+                      //       _latestAppointment = null;
+                      //       AppointmentService.clearAppointment();
+                      //     });
+                      //   },
+                      // ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildAppointmentDetailRow(
-                    'Account ID:',
-                    _latestAppointment!['account_id'] ?? 'N/A',
-                  ),
                   _buildAppointmentDetailRow(
                     'Issue Type:',
                     _latestAppointment!['issue_type'] ?? 'N/A',
@@ -120,13 +116,13 @@ class _HomeContentState extends State<HomeContent> {
                   Row(
                     children: [
                       const Icon(
-                        Icons.check_circle,
+                        Icons.hourglass_top,
                         color: Colors.green,
                         size: 16,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Confirmed',
+                        _latestAppointment!['status'] ?? 'Status',
                         style: TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.bold,
