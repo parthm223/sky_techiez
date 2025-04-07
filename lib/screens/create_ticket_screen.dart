@@ -1,7 +1,17 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:sky_techiez/models/ticket.dart';
+import 'package:http/http.dart' as http;
+import 'package:sky_techiez/screens/ticket_status_screen.dart';
+import 'package:sky_techiez/services/ticket_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
+import 'package:sky_techiez/widgets/session_string.dart';
 
 class CreateTicketScreen extends StatefulWidget {
   const CreateTicketScreen({super.key});
@@ -17,25 +27,137 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   String _selectedCategory = 'Technical Issue';
   String? _selectedTechnicalSupportType;
   String _selectedPriority = 'Medium';
+  Map<String, String> _categoriesMap = {};
+  List<String> _categories = [];
+  bool _isLoadingCategories = true;
+  Map<String, String> _subcategoriesMap = {};
+  bool _isLoadingSubcategories = false;
+  String? _technicalIssueId;
+  File? _attachment;
+  final ImagePicker _picker = ImagePicker();
+  bool _isSubmitting = false;
 
-  final List<String> _technicalSupportTypes = [
-    'Desktop Support',
-    'Wireless Printer Setup',
-    'Quicken Support',
-    'QuickBooks Support',
-    'Antivirus Support',
-    'Printer Support',
-    'Office 365 Support',
-    'Outlook Support',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+    _fetchSubcategories('1');
+  }
 
-  final List<String> _categories = [
-    'Technical Issue',
-    'Billing Problem',
-    'Account Issue',
-    'Feature Request',
-    'General Inquiry',
-  ];
+  Future<void> _fetchCategories() async {
+    print('Fetching categories...');
+    var headers = {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+    };
+
+    try {
+      var request = http.MultipartRequest(
+        'GET',
+        Uri.parse('https://tech.skytechiez.co/api/issue-type-dropdown'),
+      );
+
+      request.headers.addAll(headers);
+      print('Sending categories request with headers: $headers');
+
+      http.StreamedResponse response = await request.send();
+      print('Categories response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final String responseBody = await response.stream.bytesToString();
+        print('Categories response body: $responseBody');
+        final data = json.decode(responseBody);
+
+        setState(() {
+          _categoriesMap = Map<String, String>.from(data['issue_types']);
+          _categories = _categoriesMap.values.toList();
+          _selectedCategory = _categories.isNotEmpty ? _categories.first : '';
+          _isLoadingCategories = false;
+
+          // Find the ID for "Technical Issue" category
+          _categoriesMap.forEach((key, value) {
+            if (value == 'Technical Issue') {
+              _technicalIssueId = key;
+            }
+          });
+
+          print('Found Technical Issue ID: $_technicalIssueId');
+
+          // If the selected category is Technical Issue, fetch subcategories
+          if (_selectedCategory == 'Technical Issue' &&
+              _technicalIssueId != null) {
+            _fetchSubcategories(_technicalIssueId!);
+          }
+        });
+      } else {
+        print('Categories request failed: ${response.reasonPhrase}');
+        setState(() {
+          _isLoadingCategories = false;
+          _categories = ['Technical Issue']; // Fallback
+          _selectedCategory = 'Technical Issue';
+        });
+      }
+    } catch (e) {
+      print('Error fetching categories: $e');
+      setState(() {
+        _isLoadingCategories = false;
+        _categories = ['Technical Issue']; // Fallback
+        _selectedCategory = 'Technical Issue';
+      });
+    }
+  }
+
+  Future<void> _fetchSubcategories(String categoryId) async {
+    print('Fetching subcategories for category ID: $categoryId');
+    setState(() {
+      _isLoadingSubcategories = true;
+      _selectedTechnicalSupportType = null;
+    });
+
+    var headers = {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+    };
+
+    try {
+      var request = http.Request(
+        'GET',
+        Uri.parse(
+            'https://tech.skytechiez.co/api/get-subcategory-dropdown/$categoryId'),
+      );
+      request.headers.addAll(headers);
+
+      print('Sending subcategories request with headers: $headers');
+
+      http.StreamedResponse response = await request.send();
+      print('Subcategories response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final String responseBody = await response.stream.bytesToString();
+        print('Subcategories response body: $responseBody');
+        final data = json.decode(responseBody);
+
+        setState(() {
+          _subcategoriesMap = Map<String, String>.from(data['subcategories']);
+          _isLoadingSubcategories = false;
+          if (_subcategoriesMap.isNotEmpty) {
+            _selectedTechnicalSupportType = _subcategoriesMap.values.first;
+          }
+          print('Loaded ${_subcategoriesMap.length} subcategories');
+        });
+      } else {
+        print('Subcategories request failed: ${response.reasonPhrase}');
+        setState(() {
+          _isLoadingSubcategories = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching subcategories: $e');
+      setState(() {
+        _isLoadingSubcategories = false;
+      });
+    }
+  }
 
   final List<String> _priorities = [
     'Low',
@@ -44,11 +166,217 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     'Critical',
   ];
 
+  // Map priority names to their corresponding API values
+  final Map<String, String> _priorityApiValues = {
+    'Low': '1',
+    'Medium': '2',
+    'High': '3',
+    'Critical': '4',
+  };
+
   @override
   void dispose() {
     _subjectController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  String _generateTicketId() {
+    final now = DateTime.now();
+    final timestamp = now.millisecondsSinceEpoch.toString().substring(6);
+    return 'TKT-${now.year}-$timestamp';
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      print('Picking image...');
+      final XFile? pickedFile =
+          await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        print('Selected image: ${pickedFile.path}');
+        setState(() {
+          _attachment = File(pickedFile.path);
+        });
+      } else {
+        print('No image selected');
+      }
+    } catch (e) {
+      print('Image picker error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _createTicket() async {
+    if (_formKey.currentState!.validate()) {
+      print('Form validated, creating ticket...');
+      setState(() {
+        _isSubmitting = true;
+      });
+
+      try {
+        // Get category ID
+        String categoryId = _getCategoryIdByName(_selectedCategory) ?? '1';
+        print('Category ID for $_selectedCategory: $categoryId');
+
+        // Get subcategory ID if available
+        String? subcategoryId;
+        if (_selectedTechnicalSupportType != null &&
+            _subcategoriesMap.isNotEmpty) {
+          subcategoryId =
+              _getSubcategoryIdByName(_selectedTechnicalSupportType!);
+          print(
+              'Subcategory ID for $_selectedTechnicalSupportType: $subcategoryId');
+        }
+
+        // First create the ticket in local storage
+        final newTicket = Ticket(
+          id: _generateTicketId(),
+          subject: _subjectController.text,
+          category: _selectedCategory,
+          technicalSupportType: _selectedTechnicalSupportType,
+          priority: _selectedPriority,
+          description: _descriptionController.text,
+          status: 'New',
+          date: DateFormat('MMM dd, yyyy').format(DateTime.now()),
+        );
+
+        print('Local ticket created: ${newTicket.toJson()}');
+
+        // Save the ticket locally
+        TicketService.addTicket(newTicket);
+
+        // Now send to API
+        var headers = {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+          'Accept': 'application/json', // Add this header
+        };
+
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('https://tech.skytechiez.co/api/create-ticket'),
+        );
+
+        // Add fields
+        Map<String, String> fields = {
+          'subject': _subjectController.text,
+          'description': _descriptionController.text,
+          'category_id': categoryId,
+          'priority': _priorityApiValues[_selectedPriority] ?? '2',
+        };
+
+        // Only add subcategory_id if it's available
+        if (subcategoryId != null) {
+          fields['subcategory_id'] = subcategoryId;
+        }
+
+        request.fields.addAll(fields);
+        print('Ticket request fields: ${request.fields}');
+
+        // Add attachment if exists
+        if (_attachment != null) {
+          print('Adding attachment: ${_attachment!.path}');
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'attachment',
+              _attachment!.path,
+            ),
+          );
+        }
+
+        request.headers.addAll(headers);
+        print('Sending ticket request with headers: $headers');
+
+        http.StreamedResponse response = await request.send();
+        print('Ticket creation response status: ${response.statusCode}');
+
+        final responseBody = await response.stream.bytesToString();
+        print('Ticket creation response: $responseBody');
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final data = json.decode(responseBody);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ticket created successfully!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          // Navigate to ticket status screen
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const TicketStatusScreen(),
+            ),
+          );
+        } else {
+          if (!mounted) return;
+
+          // Try to parse error message from response
+          String errorMessage = 'Failed to create ticket';
+          try {
+            final errorData = json.decode(responseBody);
+            if (errorData['message'] != null) {
+              errorMessage = errorData['message'];
+            } else if (errorData['error'] != null) {
+              errorMessage = errorData['error'];
+            }
+          } catch (e) {
+            errorMessage = 'Failed to create ticket: ${response.reasonPhrase}';
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        print('Ticket creation exception: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
+      }
+    }
+  }
+
+  String? _getCategoryIdByName(String categoryName) {
+    String? categoryId;
+    _categoriesMap.forEach((key, value) {
+      if (value == categoryName) {
+        categoryId = key;
+      }
+    });
+    return categoryId;
+  }
+
+  String? _getSubcategoryIdByName(String subcategoryName) {
+    String? subcategoryId;
+    _subcategoriesMap.forEach((key, value) {
+      if (value == subcategoryName) {
+        subcategoryId = key;
+      }
+    });
+    return subcategoryId;
   }
 
   @override
@@ -102,81 +430,93 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedCategory,
-                        isExpanded: true,
-                        dropdownColor: AppColors.darkBackground,
-                        style: const TextStyle(color: AppColors.white),
-                        hint: const Text('Select Category'),
-                        items: _categories.map((String category) {
-                          return DropdownMenuItem<String>(
-                            value: category,
-                            child: Text(category),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedCategory = newValue;
-                              // Reset technical support type when changing category
-                              if (newValue != 'Technical Issue') {
-                                _selectedTechnicalSupportType = null;
-                              }
-                            });
-                          }
-                        },
-                      ),
+                      child: _isLoadingCategories
+                          ? const Center(child: CircularProgressIndicator())
+                          : DropdownButton<String>(
+                              value: _selectedCategory,
+                              isExpanded: true,
+                              dropdownColor: AppColors.darkBackground,
+                              style: const TextStyle(color: AppColors.white),
+                              hint: const Text('Select Category'),
+                              items: _categories.map((String category) {
+                                return DropdownMenuItem<String>(
+                                  value: category,
+                                  child: Text(category),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  print('Category changed to: $newValue');
+                                  setState(() {
+                                    _selectedCategory = newValue;
+                                    if (newValue == 'Technical Issue') {
+                                      String? categoryId =
+                                          _getCategoryIdByName(newValue);
+                                      if (categoryId != null) {
+                                        _fetchSubcategories(categoryId);
+                                      }
+                                    } else {
+                                      _selectedTechnicalSupportType = null;
+                                    }
+                                  });
+                                }
+                              },
+                            ),
                     ),
                   ),
                 ],
               ),
-              // Show Technical Support dropdown if Technical Issue is selected
-              if (_selectedCategory == 'Technical Issue') ...[
-                const SizedBox(height: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Technical Support Type',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.white,
-                      ),
+              // if (_selectedCategory == 'Technical Issue') ...[
+              const SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Technical Support Type',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.white,
                     ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGrey,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedTechnicalSupportType,
-                          isExpanded: true,
-                          dropdownColor: AppColors.darkBackground,
-                          style: const TextStyle(color: AppColors.white),
-                          hint: const Text('Select Technical Support Type'),
-                          items: _technicalSupportTypes.map((String type) {
-                            return DropdownMenuItem<String>(
-                              value: type,
-                              child: Text(type),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            if (newValue != null) {
-                              setState(() {
-                                _selectedTechnicalSupportType = newValue;
-                              });
-                            }
-                          },
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.lightGrey,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
-                ),
-              ],
+                    child: DropdownButtonHideUnderline(
+                      child: _isLoadingSubcategories
+                          ? const Center(child: CircularProgressIndicator())
+                          : DropdownButton<String>(
+                              value: _selectedTechnicalSupportType,
+                              isExpanded: true,
+                              dropdownColor: AppColors.darkBackground,
+                              style: const TextStyle(color: AppColors.white),
+                              hint: const Text('Select Support Type'),
+                              items:
+                                  _subcategoriesMap.values.map((String type) {
+                                return DropdownMenuItem<String>(
+                                  value: type,
+                                  child: Text(type),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  print(
+                                      'Technical Support Type changed to: $newValue');
+                                  setState(() {
+                                    _selectedTechnicalSupportType = newValue;
+                                  });
+                                }
+                              },
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+              // ],
               const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,6 +551,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                         }).toList(),
                         onChanged: (String? newValue) {
                           if (newValue != null) {
+                            print('Priority changed to: $newValue');
                             setState(() {
                               _selectedPriority = newValue;
                             });
@@ -263,43 +604,55 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGrey,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.grey,
-                        width: 1,
-                        style: BorderStyle.solid,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.cloud_upload,
-                          size: 48,
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.lightGrey,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
                           color: AppColors.grey,
+                          width: 1,
+                          style: BorderStyle.solid,
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Drag and drop files here or click to browse',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppColors.grey,
+                      ),
+                      child: Column(
+                        children: [
+                          _attachment != null
+                              ? Image.file(
+                                  _attachment!,
+                                  height: 100,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                )
+                              : const Icon(
+                                  Icons.cloud_upload,
+                                  size: 48,
+                                  color: AppColors.grey,
+                                ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _attachment != null
+                                ? _attachment!.path.split('/').last
+                                : 'Drag and drop files here or click to browse',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.grey,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        OutlinedButton(
-                          onPressed: () {},
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primaryBlue,
-                            side:
-                                const BorderSide(color: AppColors.primaryBlue),
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            onPressed: _pickImage,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryBlue,
+                              side: const BorderSide(
+                                  color: AppColors.primaryBlue),
+                            ),
+                            child: const Text('Browse Files'),
                           ),
-                          child: const Text('Browse Files'),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -307,18 +660,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
               const SizedBox(height: 24),
               CustomButton(
                 text: 'Submit Ticket',
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // In a real app, you would submit the ticket here
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Ticket submitted successfully'),
-                        backgroundColor: AppColors.primaryBlue,
-                      ),
-                    );
-                    Navigator.pop(context);
-                  }
-                },
+                onPressed: _isSubmitting ? null : _createTicket,
+                isLoading: _isSubmitting,
               ),
             ],
           ),

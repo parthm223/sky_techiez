@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:sky_techiez/servies/appointment_service.dart';
+import 'package:sky_techiez/services/appointment_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';

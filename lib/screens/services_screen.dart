@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
-import 'package:sky_techiez/screens/book_appointment_screen.dart';
+
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 
@@ -187,21 +187,21 @@ class ServicesScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(
-                          child: CustomButton(
-                            text: 'Book Appointment',
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const BookAppointmentScreen(),
-                                ),
-                              );
-                            },
-                            isOutlined: true,
-                          ),
-                        ),
+                        // Expanded(
+                        //   child: CustomButton(
+                        //     text: 'Book Appointment',
+                        //     onPressed: () {
+                        //       Navigator.push(
+                        //         context,
+                        //         MaterialPageRoute(
+                        //           builder: (context) =>
+                        //               const BookAppointmentScreen(),
+                        //         ),
+                        //       );
+                        //     },
+                        //     isOutlined: true,
+                        //   ),
+                        // ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -267,6 +267,7 @@ class ServicesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -312,6 +313,7 @@ class ServicesScreen extends StatelessWidget {
             ...features.map((feature) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(
                         Icons.check_circle,
@@ -319,9 +321,11 @@ class ServicesScreen extends StatelessWidget {
                         color: AppColors.primaryBlue,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        feature,
-                        style: const TextStyle(color: AppColors.white),
+                      Expanded(
+                        child: Text(
+                          feature,
+                          style: const TextStyle(color: AppColors.white),
+                        ),
                       ),
                     ],
                   ),

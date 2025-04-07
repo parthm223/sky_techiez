@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:sky_techiez/models/user_data.dart';
-
-import 'package:sky_techiez/servies/auth_service.dart';
+import 'package:sky_techiez/services/auth_service.dart';
 
 class AuthController extends GetxController {
   final isLoggedIn = false.obs;

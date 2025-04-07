@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:get/get.dart';
-import 'package:sky_techiez/servies/auth_service.dart';
+import 'package:sky_techiez/services/auth_service.dart';
 
 class RegistrationController extends GetxController {
   // User data
