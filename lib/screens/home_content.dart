@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:sky_techiez/models/ticket.dart';
 import 'package:sky_techiez/screens/book_appointment_screen.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
-
 import 'package:sky_techiez/screens/services_screen.dart';
 import 'package:sky_techiez/screens/subscriptions_screen.dart';
+import 'package:sky_techiez/screens/ticket_details_screen.dart';
 import 'package:sky_techiez/services/appointment_service.dart';
-
+import 'package:sky_techiez/services/ticket_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 
@@ -18,11 +19,14 @@ class HomeContent extends StatefulWidget {
 
 class _HomeContentState extends State<HomeContent> {
   Map<String, dynamic>? _latestAppointment;
+  Ticket? _latestTicket;
+  bool _isLoadingTicket = true;
 
   @override
   void initState() {
     super.initState();
     _loadAppointmentDetails();
+    _loadLatestTicket();
   }
 
   void _loadAppointmentDetails() {
@@ -30,6 +34,37 @@ class _HomeContentState extends State<HomeContent> {
     if (appointmentData != null) {
       setState(() {
         _latestAppointment = appointmentData;
+      });
+    }
+  }
+
+  void _loadLatestTicket() async {
+    setState(() {
+      _isLoadingTicket = true;
+    });
+
+    try {
+      // First try to fetch from API
+      final apiTickets = await TicketService.fetchTicketsFromApi();
+
+      // Get local tickets as fallback
+      final localTickets = TicketService.getAllTickets();
+
+      setState(() {
+        // Use API tickets if available, otherwise use local tickets
+        final allTickets = apiTickets.isNotEmpty ? apiTickets : localTickets;
+
+        // Get the most recent ticket (assuming the first one is the latest)
+        _latestTicket = allTickets.isNotEmpty ? allTickets.first : null;
+        _isLoadingTicket = false;
+      });
+    } catch (e) {
+      print('Error loading latest ticket: $e');
+      // Fall back to local tickets if API fails
+      final localTickets = TicketService.getAllTickets();
+      setState(() {
+        _latestTicket = localTickets.isNotEmpty ? localTickets.first : null;
+        _isLoadingTicket = false;
       });
     }
   }
@@ -65,77 +100,188 @@ class _HomeContentState extends State<HomeContent> {
           const SizedBox(height: 16),
 
           // Display appointment details if available
-          // if (_latestAppointment != null) ...[
-          //   Container(
-          //     width: double.infinity,
-          //     padding: const EdgeInsets.all(16),
-          //     decoration: BoxDecoration(
-          //       color: AppColors.primaryBlue.withOpacity(0.1),
-          //       borderRadius: BorderRadius.circular(8),
-          //       border: Border.all(color: AppColors.primaryBlue, width: 1),
-          //     ),
-          //     child: Column(
-          //       crossAxisAlignment: CrossAxisAlignment.start,
-          //       children: [
-          //         Row(
-          //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //           children: [
-          //             const Text(
-          //               'Your Upcoming Appointment',
-          //               style: TextStyle(
-          //                 fontSize: 16,
-          //                 fontWeight: FontWeight.bold,
-          //                 color: AppColors.primaryBlue,
-          //               ),
-          //             ),
-          //             // IconButton(
-          //             //   icon: const Icon(Icons.close,
-          //             //       size: 18, color: AppColors.grey),
-          //             //   onPressed: () {
-          //             //     setState(() {
-          //             //       _latestAppointment = null;
-          //             //       AppointmentService.clearAppointment();
-          //             //     });
-          //             //   },
-          //             // ),
-          //           ],
-          //         ),
-          //         const SizedBox(height: 12),
-          //         _buildAppointmentDetailRow(
-          //           'Issue Type:',
-          //           _latestAppointment!['issue_type'] ?? 'N/A',
-          //         ),
-          //         _buildAppointmentDetailRow(
-          //           'Issue:',
-          //           _latestAppointment!['issue'] ?? 'N/A',
-          //         ),
-          //         _buildAppointmentDetailRow(
-          //           'Date & Time:',
-          //           '${_latestAppointment!['date'] ?? 'N/A'} at ${_latestAppointment!['time'] ?? 'N/A'}',
-          //         ),
-          //         const SizedBox(height: 8),
-          //         Row(
-          //           children: [
-          //             const Icon(
-          //               Icons.hourglass_top,
-          //               color: Colors.green,
-          //               size: 16,
-          //             ),
-          //             const SizedBox(width: 8),
-          //             Text(
-          //               _latestAppointment!['status'] ?? 'Status',
-          //               style: TextStyle(
-          //                 color: Colors.green,
-          //                 fontWeight: FontWeight.bold,
-          //               ),
-          //             ),
-          //           ],
-          //         ),
-          //       ],
-          //     ),
-          //   ),
-          //   const SizedBox(height: 24),
-          // ],
+          if (_latestAppointment != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.primaryBlue, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Your Upcoming Appointment',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close,
+                            size: 18, color: AppColors.grey),
+                        onPressed: () {
+                          setState(() {
+                            _latestAppointment = null;
+                            AppointmentService.clearAppointment();
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildAppointmentDetailRow(
+                    'Issue Type:',
+                    _latestAppointment!['issue_type'] ?? 'N/A',
+                  ),
+                  _buildAppointmentDetailRow(
+                    'Issue:',
+                    _latestAppointment!['issue'] ?? 'N/A',
+                  ),
+                  _buildAppointmentDetailRow(
+                    'Date & Time:',
+                    '${_latestAppointment!['date'] ?? 'N/A'} at ${_latestAppointment!['time'] ?? 'N/A'}',
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.hourglass_top,
+                        color: Colors.green,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _latestAppointment!['status'] ?? 'Status',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Display latest ticket if available
+          if (_latestTicket != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.purple, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Your Latest Ticket',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple,
+                        ),
+                      ),
+                      // IconButton(
+                      //   icon: const Icon(Icons.visibility,
+                      //       size: 18, color: AppColors.grey),
+                      //   onPressed: () {
+                      //     // Navigate to ticket details
+                      //     Navigator.push(
+                      //       context,
+                      //       MaterialPageRoute(
+                      //         builder: (context) => TicketDetailsScreen(
+                      //           ticketData: _latestTicket!.toJson(),
+                      //         ),
+                      //       ),
+                      //     );
+                      //   },
+                      // ),
+                    ],
+                  ),
+                  _buildAppointmentDetailRow(
+                    'Subject:',
+                    _latestTicket!.subject,
+                  ),
+                  _buildAppointmentDetailRow(
+                    'Category:',
+                    _latestTicket!.category,
+                  ),
+                  _buildAppointmentDetailRow(
+                    'Priority:',
+                    _latestTicket!.priority,
+                  ),
+                  _buildAppointmentDetailRow(
+                    'Date:',
+                    _latestTicket!.date,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        _getStatusIcon(_latestTicket!.status),
+                        color: _getStatusColor(_latestTicket!.status),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _latestTicket!.status,
+                        style: TextStyle(
+                          color: _getStatusColor(_latestTicket!.status),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TicketDetailsScreen(
+                            ticketData: _latestTicket!.toJson(),
+                          ),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.purple,
+                    ),
+                    child: const Text('View Details'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ] else if (_isLoadingTicket) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
 
           GridView.count(
             shrinkWrap: true,
@@ -172,74 +318,6 @@ class _HomeContentState extends State<HomeContent> {
               );
             }),
           ),
-          const SizedBox(height: 24),
-          // Container(
-          //   padding: const EdgeInsets.all(16),
-          //   decoration: BoxDecoration(
-          //     color: AppColors.cardBackground,
-          //     borderRadius: BorderRadius.circular(8),
-          //   ),
-          //   child: Column(
-          //     crossAxisAlignment: CrossAxisAlignment.start,
-          //     children: [
-          //       Row(
-          //         children: [
-          //           Expanded(
-          //             child: Column(
-          //               crossAxisAlignment: CrossAxisAlignment.start,
-          //               children: [
-          //                 const Text(
-          //                   'Expert Consultation',
-          //                   style: TextStyle(
-          //                     fontSize: 16,
-          //                     fontWeight: FontWeight.bold,
-          //                   ),
-          //                 ),
-          //                 const SizedBox(height: 8),
-          //                 const Text(
-          //                   'Get professional advice from our IT experts',
-          //                   style: TextStyle(
-          //                     fontSize: 14,
-          //                     color: AppColors.grey,
-          //                   ),
-          //                 ),
-          //                 const SizedBox(height: 16),
-          //                 CustomButton(
-          //                   text: 'Book Appointment',
-          //                   onPressed: () async {
-          //                     await Navigator.push(
-          //                       context,
-          //                       MaterialPageRoute(
-          //                         builder: (context) =>
-          //                             const BookAppointmentScreen(),
-          //                       ),
-          //                     );
-          //                     // Reload appointment details when returning from booking screen
-          //                     _loadAppointmentDetails();
-          //                   },
-          //                   width: 160,
-          //                 ),
-          //               ],
-          //             ),
-          //           ),
-          //           Container(
-          //             width: 100,
-          //             height: 100,
-          //             decoration: BoxDecoration(
-          //               color: AppColors.primaryBlue,
-          //               borderRadius: BorderRadius.circular(8),
-          //             ),
-          //             child: const Icon(
-          //               Icons.people,
-          //               size: 48,
-          //               color: AppColors.white,
-          //             ),
-          //           ),
-          //         ],
-          //       ),
-          //     ],
-          //   ),
-          // ),
           const SizedBox(height: 24),
           const Text(
             'WHAT WE\'RE OFFERING',
@@ -344,7 +422,10 @@ class _HomeContentState extends State<HomeContent> {
                         MaterialPageRoute(
                           builder: (context) => const CreateTicketScreen(),
                         ),
-                      );
+                      ).then((_) {
+                        // Refresh ticket data when returning from create ticket screen
+                        _loadLatestTicket();
+                      });
                     },
                   ),
                 ],
@@ -415,5 +496,35 @@ class _HomeContentState extends State<HomeContent> {
         ],
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'In Progress':
+        return Colors.blue;
+      case 'Pending':
+        return Colors.orange;
+      case 'Completed':
+        return Colors.green;
+      case 'New':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'In Progress':
+        return Icons.pending_actions;
+      case 'Pending':
+        return Icons.hourglass_empty;
+      case 'Completed':
+        return Icons.check_circle;
+      case 'New':
+        return Icons.fiber_new;
+      default:
+        return Icons.info;
+    }
   }
 }

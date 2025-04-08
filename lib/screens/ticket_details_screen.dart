@@ -133,7 +133,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
               SliverAppBar(
                 backgroundColor: AppColors.cardBackground,
                 foregroundColor: AppColors.white,
-                expandedHeight: 320,
+                expandedHeight: 500,
                 pinned: true,
                 floating: false,
                 leading: IconButton(
