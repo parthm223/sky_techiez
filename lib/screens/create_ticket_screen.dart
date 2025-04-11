@@ -24,7 +24,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   final _formKey = GlobalKey<FormState>();
   final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String _selectedCategory = 'Technical Issue';
+  String _selectedCategory = 'Technical Support';
   String? _selectedTechnicalSupportType;
   String _selectedPriority = 'Medium';
   Map<String, String> _categoriesMap = {};
@@ -32,7 +32,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   bool _isLoadingCategories = true;
   Map<String, String> _subcategoriesMap = {};
   bool _isLoadingSubcategories = false;
-  String? _technicalIssueId;
   File? _attachment;
   final ImagePicker _picker = ImagePicker();
   bool _isSubmitting = false;
@@ -41,7 +40,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   void initState() {
     super.initState();
     _fetchCategories();
-    _fetchSubcategories('1');
   }
 
   Future<void> _fetchCategories() async {
@@ -74,35 +72,37 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
           _selectedCategory = _categories.isNotEmpty ? _categories.first : '';
           _isLoadingCategories = false;
 
-          // Find the ID for "Technical Issue" category
-          _categoriesMap.forEach((key, value) {
-            if (value == 'Technical Issue') {
-              _technicalIssueId = key;
-            }
-          });
+          // Find the ID for the selected category
+          String? selectedCategoryId = _getCategoryIdByName(_selectedCategory);
+          print('Selected category ID: $selectedCategoryId');
 
-          print('Found Technical Issue ID: $_technicalIssueId');
-
-          // If the selected category is Technical Issue, fetch subcategories
-          if (_selectedCategory == 'Technical Issue' &&
-              _technicalIssueId != null) {
-            _fetchSubcategories(_technicalIssueId!);
+          // If the selected category has key "1", fetch subcategories
+          if (selectedCategoryId == '1') {
+            _fetchSubcategories(selectedCategoryId!);
           }
         });
       } else {
         print('Categories request failed: ${response.reasonPhrase}');
         setState(() {
           _isLoadingCategories = false;
-          _categories = ['Technical Issue']; // Fallback
-          _selectedCategory = 'Technical Issue';
+          _categories = ['Technical Support', 'Account Management']; // Fallback
+          _selectedCategory = 'Technical Support';
+          _categoriesMap = {
+            '1': 'Technical Support',
+            '2': 'Account Management',
+          };
         });
       }
     } catch (e) {
       print('Error fetching categories: $e');
       setState(() {
         _isLoadingCategories = false;
-        _categories = ['Technical Issue']; // Fallback
-        _selectedCategory = 'Technical Issue';
+        _categories = ['Technical Support', 'Account Management']; // Fallback
+        _selectedCategory = 'Technical Support';
+        _categoriesMap = {
+          '1': 'Technical Support',
+          '2': 'Account Management',
+        };
       });
     }
   }
@@ -166,14 +166,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     'Critical',
   ];
 
-  // Map priority names to their corresponding API values
-  final Map<String, String> _priorityApiValues = {
-    'Low': '1',
-    'Medium': '2',
-    'High': '3',
-    'Critical': '4',
-  };
-
   @override
   void dispose() {
     _subjectController.dispose();
@@ -223,38 +215,10 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         String categoryId = _getCategoryIdByName(_selectedCategory) ?? '1';
         print('Category ID for $_selectedCategory: $categoryId');
 
-        // Get subcategory ID if available
-        String? subcategoryId;
-        if (_selectedTechnicalSupportType != null &&
-            _subcategoriesMap.isNotEmpty) {
-          subcategoryId =
-              _getSubcategoryIdByName(_selectedTechnicalSupportType!);
-          print(
-              'Subcategory ID for $_selectedTechnicalSupportType: $subcategoryId');
-        }
-
-        // First create the ticket in local storage
-        final newTicket = Ticket(
-          id: _generateTicketId(),
-          subject: _subjectController.text,
-          category: _selectedCategory,
-          technicalSupportType: _selectedTechnicalSupportType,
-          priority: _selectedPriority,
-          description: _descriptionController.text,
-          status: 'New',
-          date: DateFormat('MMM dd, yyyy').format(DateTime.now()),
-        );
-
-        print('Local ticket created: ${newTicket.toJson()}');
-
-        // Save the ticket locally
-        TicketService.addTicket(newTicket);
-
-        // Now send to API
         var headers = {
           'X-Requested-With': 'XMLHttpRequest',
           'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
-          'Accept': 'application/json', // Add this header
+          'Accept': 'application/json',
         };
 
         var request = http.MultipartRequest(
@@ -267,12 +231,15 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
           'subject': _subjectController.text,
           'description': _descriptionController.text,
           'category_id': categoryId,
-          'priority': _priorityApiValues[_selectedPriority] ?? '2',
+          'priority': _selectedPriority,
         };
 
-        // Only add subcategory_id if it's available
-        if (subcategoryId != null) {
-          fields['subcategory_id'] = subcategoryId;
+        // Only add subcategory_id if the category is "Technical Support" (key "1")
+        if (categoryId == '1' &&
+            _selectedTechnicalSupportType != null &&
+            _subcategoriesMap.isNotEmpty) {
+          fields['subcategory_id'] =
+              _getSubcategoryIdByName(_selectedTechnicalSupportType!) ?? '';
         }
 
         request.fields.addAll(fields);
@@ -299,7 +266,21 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         print('Ticket creation response: $responseBody');
 
         if (response.statusCode == 200 || response.statusCode == 201) {
-          final data = json.decode(responseBody);
+          json.decode(responseBody);
+
+          // Create local ticket
+          final newTicket = Ticket(
+            id: _generateTicketId(),
+            subject: _subjectController.text,
+            category: _selectedCategory,
+            technicalSupportType: _selectedTechnicalSupportType,
+            priority: _selectedPriority,
+            description: _descriptionController.text,
+            status: 'New',
+            date: DateFormat('MMM dd, yyyy').format(DateTime.now()),
+          );
+
+          TicketService.addTicket(newTicket);
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -309,7 +290,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
             ),
           );
 
-          // Navigate to ticket status screen
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
@@ -320,7 +300,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         } else {
           if (!mounted) return;
 
-          // Try to parse error message from response
           String errorMessage = 'Failed to create ticket';
           try {
             final errorData = json.decode(responseBody);
@@ -449,14 +428,16 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                                   print('Category changed to: $newValue');
                                   setState(() {
                                     _selectedCategory = newValue;
-                                    if (newValue == 'Technical Issue') {
-                                      String? categoryId =
-                                          _getCategoryIdByName(newValue);
-                                      if (categoryId != null) {
+                                    String? categoryId =
+                                        _getCategoryIdByName(newValue);
+                                    if (categoryId != null) {
+                                      // Only fetch subcategories if the category key is "1"
+                                      if (categoryId == '1') {
                                         _fetchSubcategories(categoryId);
+                                      } else {
+                                        // Clear subcategory selection for other categories
+                                        _selectedTechnicalSupportType = null;
                                       }
-                                    } else {
-                                      _selectedTechnicalSupportType = null;
                                     }
                                   });
                                 }
@@ -466,57 +447,58 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                   ),
                 ],
               ),
-              // if (_selectedCategory == 'Technical Issue') ...[
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Technical Support Type',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.white,
+              // Only show subcategory dropdown if the selected category has key "1"
+              if (_getCategoryIdByName(_selectedCategory) == '1') ...[
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Technical Support Type',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.white,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGrey,
-                      borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.lightGrey,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: _isLoadingSubcategories
+                            ? const Center(child: CircularProgressIndicator())
+                            : DropdownButton<String>(
+                                value: _selectedTechnicalSupportType,
+                                isExpanded: true,
+                                dropdownColor: AppColors.darkBackground,
+                                style: const TextStyle(color: AppColors.white),
+                                hint: const Text('Select Support Type'),
+                                items:
+                                    _subcategoriesMap.values.map((String type) {
+                                  return DropdownMenuItem<String>(
+                                    value: type,
+                                    child: Text(type),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  if (newValue != null) {
+                                    print(
+                                        'Technical Support Type changed to: $newValue');
+                                    setState(() {
+                                      _selectedTechnicalSupportType = newValue;
+                                    });
+                                  }
+                                },
+                              ),
+                      ),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: _isLoadingSubcategories
-                          ? const Center(child: CircularProgressIndicator())
-                          : DropdownButton<String>(
-                              value: _selectedTechnicalSupportType,
-                              isExpanded: true,
-                              dropdownColor: AppColors.darkBackground,
-                              style: const TextStyle(color: AppColors.white),
-                              hint: const Text('Select Support Type'),
-                              items:
-                                  _subcategoriesMap.values.map((String type) {
-                                return DropdownMenuItem<String>(
-                                  value: type,
-                                  child: Text(type),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  print(
-                                      'Technical Support Type changed to: $newValue');
-                                  setState(() {
-                                    _selectedTechnicalSupportType = newValue;
-                                  });
-                                }
-                              },
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-              // ],
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -45,14 +45,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final result = await ProfileService.getProfile();
 
       if (result['success'] == true) {
-        _loadUserData(); // Reload user data from storage after successful fetch
+        if (mounted) {
+          // Add this check
+          _loadUserData(); // Reload user data from storage after successful fetch
+        }
       }
     } catch (e) {
       print('Error fetching profile: $e');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        // Add this check
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -107,10 +113,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _buildProfileItem(
                                 'Phone:', userDetail?.phone ?? 'N/A'),
                             _buildProfileItem('DOB:', userDetail?.dob ?? 'N/A'),
-                            _buildProfileItem(
-                                'ID:', userDetail?.id?.toString() ?? 'N/A'),
-                            _buildProfileItem(
-                                'Account ID:', userDetail?.accountId ?? 'N/A'),
+                            // _buildProfileItem(
+                            //     'ID:', userDetail?.id?.toString() ?? 'N/A'),
+                            // _buildProfileItem(
+                            //     'Account ID:', userDetail?.accountId ?? 'N/A'),
                             const SizedBox(height: 8),
                             const Divider(color: AppColors.grey),
                             const SizedBox(height: 8),

@@ -1,14 +1,18 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/models/ticket.dart';
-import 'package:sky_techiez/screens/book_appointment_screen.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
 import 'package:sky_techiez/screens/services_screen.dart';
 import 'package:sky_techiez/screens/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_details_screen.dart';
 import 'package:sky_techiez/services/appointment_service.dart';
+import 'package:sky_techiez/services/subscription_service.dart';
 import 'package:sky_techiez/services/ticket_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
+import 'package:sky_techiez/widgets/session_string.dart';
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -21,12 +25,99 @@ class _HomeContentState extends State<HomeContent> {
   Map<String, dynamic>? _latestAppointment;
   Ticket? _latestTicket;
   bool _isLoadingTicket = true;
+  bool _hasSubscription = false;
+  bool _isCheckingSubscription = true;
+  String? _tollFreeNumber;
+  bool _isLoadingTollFreeNumber = false;
 
+// Modify the initState method to check subscription status:
   @override
   void initState() {
     super.initState();
     _loadAppointmentDetails();
     _loadLatestTicket();
+    _checkSubscriptionStatus();
+    _fetchSettings();
+  }
+
+  Future<void> _fetchSettings() async {
+    print('Starting to fetch settings...');
+    setState(() {
+      _isLoadingTollFreeNumber = true;
+    });
+
+    try {
+      var headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+      };
+
+      print('Headers: $headers');
+      print('Making request to: https://tech.skytechiez.co/api/settings');
+
+      var request = http.MultipartRequest(
+          'GET', Uri.parse('https://tech.skytechiez.co/api/settings'));
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+      print('Response status code: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        String responseBody = await response.stream.bytesToString();
+        print('Raw API response: $responseBody');
+
+        Map<String, dynamic> data = json.decode(responseBody);
+        print('Parsed response data: $data');
+
+        if (mounted) {
+          setState(() {
+            _tollFreeNumber = data['toll_free_number'] ?? '1-800-123-4567';
+            print('Toll-free number set to: $_tollFreeNumber');
+          });
+        }
+      } else {
+        print('API request failed with status: ${response.statusCode}');
+        print('Reason: ${response.reasonPhrase}');
+
+        if (mounted) {
+          setState(() {
+            _tollFreeNumber = '1-800-123-4567';
+            print('Using default toll-free number');
+          });
+        }
+      }
+    } catch (e) {
+      print('Error in _fetchSettings: $e');
+      if (mounted) {
+        setState(() {
+          _tollFreeNumber = '1-800-123-4567';
+          print('Using default toll-free number due to error');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingTollFreeNumber = false;
+          print('Finished loading toll-free number');
+        });
+      }
+    }
+  }
+
+// Add this method to check subscription status:
+  Future<void> _checkSubscriptionStatus() async {
+    setState(() {
+      _isCheckingSubscription = true;
+    });
+
+    final hasSubscription = await SubscriptionService.hasActiveSubscription();
+
+    if (mounted) {
+      setState(() {
+        _hasSubscription = hasSubscription;
+        _isCheckingSubscription = false;
+      });
+    }
   }
 
   void _loadAppointmentDetails() {
@@ -50,22 +141,28 @@ class _HomeContentState extends State<HomeContent> {
       // Get local tickets as fallback
       final localTickets = TicketService.getAllTickets();
 
-      setState(() {
-        // Use API tickets if available, otherwise use local tickets
-        final allTickets = apiTickets.isNotEmpty ? apiTickets : localTickets;
+      if (mounted) {
+        // Add this check
+        setState(() {
+          // Use API tickets if available, otherwise use local tickets
+          final allTickets = apiTickets.isNotEmpty ? apiTickets : localTickets;
 
-        // Get the most recent ticket (assuming the first one is the latest)
-        _latestTicket = allTickets.isNotEmpty ? allTickets.first : null;
-        _isLoadingTicket = false;
-      });
+          // Get the most recent ticket (assuming the first one is the latest)
+          _latestTicket = allTickets.isNotEmpty ? allTickets.first : null;
+          _isLoadingTicket = false;
+        });
+      }
     } catch (e) {
       print('Error loading latest ticket: $e');
       // Fall back to local tickets if API fails
       final localTickets = TicketService.getAllTickets();
-      setState(() {
-        _latestTicket = localTickets.isNotEmpty ? localTickets.first : null;
-        _isLoadingTicket = false;
-      });
+      if (mounted) {
+        // Add this check
+        setState(() {
+          _latestTicket = localTickets.isNotEmpty ? localTickets.first : null;
+          _isLoadingTicket = false;
+        });
+      }
     }
   }
 
@@ -195,22 +292,7 @@ class _HomeContentState extends State<HomeContent> {
                           fontWeight: FontWeight.bold,
                           color: Colors.purple,
                         ),
-                      ),
-                      // IconButton(
-                      //   icon: const Icon(Icons.visibility,
-                      //       size: 18, color: AppColors.grey),
-                      //   onPressed: () {
-                      //     // Navigate to ticket details
-                      //     Navigator.push(
-                      //       context,
-                      //       MaterialPageRoute(
-                      //         builder: (context) => TicketDetailsScreen(
-                      //           ticketData: _latestTicket!.toJson(),
-                      //         ),
-                      //       ),
-                      //     );
-                      //   },
-                      // ),
+                      )
                     ],
                   ),
                   _buildAppointmentDetailRow(
@@ -402,37 +484,91 @@ class _HomeContentState extends State<HomeContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Need Help?',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  Card(
+                    color: AppColors.cardBackground,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Need Help?',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Create a support ticket and our team will assist you',
+                          ),
+                          const SizedBox(height: 16),
+                          _isCheckingSubscription
+                              ? const Center(child: CircularProgressIndicator())
+                              : _hasSubscription
+                                  ? CustomButton(
+                                      text: 'Create Ticket',
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const CreateTicketScreen(),
+                                          ),
+                                        ).then((_) {
+                                          // Refresh ticket data when returning from create ticket screen
+                                          _loadLatestTicket();
+                                        });
+                                      },
+                                    )
+                                  : Column(
+                                      children: [
+                                        const Icon(
+                                          Icons.subscriptions,
+                                          color: Colors.amber,
+                                          size: 48,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        const Text(
+                                          'Subscription Required',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          'You need an active subscription to create support tickets.',
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        CustomButton(
+                                          text: 'View Subscription Plans',
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const SubscriptionsScreen(),
+                                              ),
+                                            ).then((_) {
+                                              // Refresh subscription status when returning
+                                              _checkSubscriptionStatus();
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Create a support ticket and our team will assist you',
-                  ),
-                  const SizedBox(height: 16),
-                  CustomButton(
-                    text: 'Create Ticket',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CreateTicketScreen(),
-                        ),
-                      ).then((_) {
-                        // Refresh ticket data when returning from create ticket screen
-                        _loadLatestTicket();
-                      });
-                    },
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
+          // Replace the existing toll-free number Card widget with this:
           Card(
             color: AppColors.cardBackground,
             child: Padding(
@@ -452,14 +588,16 @@ class _HomeContentState extends State<HomeContent> {
                     'Call us for free at',
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    '1-800-123-4567',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryBlue,
-                    ),
-                  ),
+                  _isLoadingTollFreeNumber
+                      ? const CircularProgressIndicator()
+                      : Text(
+                          _tollFreeNumber ?? '1-800-123-4567',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryBlue,
+                          ),
+                        ),
                 ],
               ),
             ),

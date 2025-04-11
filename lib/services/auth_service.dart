@@ -5,6 +5,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:sky_techiez/widgets/session_string.dart';
+import 'package:flutter/material.dart';
 
 import '../screens/home_screen.dart';
 
@@ -102,26 +103,65 @@ class AuthService {
       print('Login response status: ${response.statusCode}');
       print('Login response body: ${response.body}');
 
+      final data = json.decode(response.body);
+
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        // Store user data and token
         GetStorage().write(isLoginSession, true);
         GetStorage().write(tokenKey, "Bearer ${data["token"]}");
         GetStorage().write(userCollectionName, data["user"]);
-        Get.offAll(() => const HomeScreen());
+
+        // Show success message before navigation
+        Get.snackbar(
+          'Success',
+          data['message'] ?? 'Login successful',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(10),
+        );
+
+        // Navigate after showing the message
+        Future.delayed(const Duration(seconds: 1), () {
+          Get.offAll(() => const HomeScreen());
+        });
+
         return {
-          'success': data['success'] ?? false,
+          'success': true,
           'message': data['message'] ?? 'Login successful',
           'data': data['data'] ?? {},
           'token': data['token'] ?? '',
         };
       } else {
+        // Show error message here instead of returning it
+        Get.snackbar(
+          'Error',
+          data['message'] ?? 'Invalid credentials or user not found',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(10),
+        );
+
         return {
           'success': false,
-          'message': json.decode(response.body)["message"],
+          'message': data['message'] ?? 'Login failed',
         };
       }
     } catch (e) {
       print('Error logging in: $e');
+
+      // Show error message here for exceptions
+      Get.snackbar(
+        'Error',
+        'An unexpected error occurred. Please try again.',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(10),
+      );
+
       return {
         'success': false,
         'message': 'Error: $e',

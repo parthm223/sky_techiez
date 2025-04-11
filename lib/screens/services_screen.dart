@@ -1,11 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
+import 'package:sky_techiez/screens/subscriptions_screen.dart';
+import 'package:sky_techiez/services/subscription_service.dart';
 
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 
-class ServicesScreen extends StatelessWidget {
+class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
+
+  @override
+  State<ServicesScreen> createState() => _ServicesScreenState();
+}
+
+class _ServicesScreenState extends State<ServicesScreen> {
+  bool _hasSubscription = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSubscriptionStatus();
+  }
+
+  Future<void> _checkSubscriptionStatus() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final hasSubscription = await SubscriptionService.hasActiveSubscription();
+
+    if (mounted) {
+      setState(() {
+        _hasSubscription = hasSubscription;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,19 +188,97 @@ class ServicesScreen extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: CustomButton(
-                            text: 'Create Ticket',
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const CreateTicketScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                            child: Card(
+                                color: AppColors.cardBackground,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Need Assistance?',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        _isLoading
+                                            ? const Center(
+                                                child:
+                                                    CircularProgressIndicator())
+                                            : _hasSubscription
+                                                ? Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: CustomButton(
+                                                          text: 'Create Ticket',
+                                                          onPressed: () {
+                                                            Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                builder:
+                                                                    (context) =>
+                                                                        const CreateTicketScreen(),
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : Column(
+                                                    children: [
+                                                      const Icon(
+                                                        Icons.subscriptions,
+                                                        color: Colors.amber,
+                                                        size: 48,
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      const Text(
+                                                        'Subscription Required',
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color:
+                                                              AppColors.white,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      const Text(
+                                                        'You need an active subscription to create support tickets.',
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: TextStyle(
+                                                          color: AppColors.grey,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      CustomButton(
+                                                        text:
+                                                            'View Subscription Plans',
+                                                        onPressed: () {
+                                                          Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (context) =>
+                                                                  const SubscriptionsScreen(),
+                                                            ),
+                                                          ).then((_) {
+                                                            // Refresh subscription status when returning
+                                                            _checkSubscriptionStatus();
+                                                          });
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
+                                      ]),
+                                )))
                       ],
                     ),
                     const SizedBox(height: 12),

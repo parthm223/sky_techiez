@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sky_techiez/models/ticket.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
+import 'package:sky_techiez/screens/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_details_screen.dart';
 import 'package:sky_techiez/services/appointment_service.dart';
+import 'package:sky_techiez/services/subscription_service.dart';
 import 'package:sky_techiez/services/ticket_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
@@ -18,12 +20,22 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
   Map<String, dynamic>? _latestAppointment;
   List<Ticket> _userTickets = [];
   bool _isLoading = true;
-
+  bool _hasSubscription = false;
   @override
   void initState() {
     super.initState();
     _loadAppointmentDetails();
     _loadUserTickets();
+    _checkSubscriptionStatus();
+  }
+
+  Future<void> _checkSubscriptionStatus() async {
+    final hasSubscription = await SubscriptionService.hasActiveSubscription();
+    if (mounted) {
+      setState(() {
+        _hasSubscription = hasSubscription;
+      });
+    }
   }
 
   void _loadAppointmentDetails() {
@@ -44,23 +56,29 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
       // First try to fetch from API
       final apiTickets = await TicketService.fetchTicketsFromApi();
 
-      setState(() {
-        _userTickets = apiTickets;
-        // If no tickets from API, fall back to local tickets
-        if (_userTickets.isEmpty) {
-          _userTickets = TicketService.getAllTickets();
-        }
-        _isLoading = false;
-      });
+      if (mounted) {
+        // Add this check
+        setState(() {
+          _userTickets = apiTickets;
+          // If no tickets from API, fall back to local tickets
+          if (_userTickets.isEmpty) {
+            _userTickets = TicketService.getAllTickets();
+          }
+          _isLoading = false;
+        });
+      }
 
       print('Loaded ${_userTickets.length} tickets');
     } catch (e) {
       print('Error loading tickets: $e');
       // Fall back to local tickets if API fails
-      setState(() {
-        _userTickets = TicketService.getAllTickets();
-        _isLoading = false;
-      });
+      if (mounted) {
+        // Add this check
+        setState(() {
+          _userTickets = TicketService.getAllTickets();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -106,7 +124,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                     if (_userTickets.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Text(
-                        'Your Tickets',
+                        'Your Ticket',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -176,20 +194,72 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                     ],
 
                     const SizedBox(height: 24),
-                    CustomButton(
-                      text: 'Create New Ticket',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CreateTicketScreen(),
+                    const SizedBox(height: 24),
+                    _hasSubscription
+                        ? CustomButton(
+                            text: 'Create New Ticket',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const CreateTicketScreen(),
+                                ),
+                              ).then((_) {
+                                // Refresh tickets when returning from create ticket screen
+                                _loadUserTickets();
+                              });
+                            },
+                          )
+                        : Card(
+                            color: AppColors.cardBackground,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.subscriptions,
+                                    color: Colors.amber,
+                                    size: 48,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Subscription Required',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'You need an active subscription to create support tickets.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.grey,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  CustomButton(
+                                    text: 'View Subscription Plans',
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const SubscriptionsScreen(),
+                                        ),
+                                      ).then((_) {
+                                        // Refresh subscription status when returning
+                                        _checkSubscriptionStatus();
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                        ).then((_) {
-                          // Refresh tickets when returning from create ticket screen
-                          _loadUserTickets();
-                        });
-                      },
-                    ),
                   ],
                 ),
               ),

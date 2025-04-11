@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sky_techiez/controllers/auth_controller.dart';
 import 'package:sky_techiez/screens/create_account_screen.dart';
+import 'package:sky_techiez/screens/home_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
@@ -32,39 +33,25 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final String emailOrPhone = _emailOrPhoneController.text;
-    final String password = _passwordController.text;
+    final String emailOrPhone = _emailOrPhoneController.text.trim();
+    final String password = _passwordController.text.trim();
 
-    print("Attempting login with: $emailOrPhone and password: $password");
+    print("Attempting login with: $emailOrPhone");
 
     try {
-      final result = await _authController.login(emailOrPhone, password);
-
-      if (result['success']) {
-        Get.snackbar(
-          'Error',
-          result['message'] ?? 'Login failed',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-
-        // Navigate to home screen
-        // Get.offAll(() => const HomeScreen());
-      } else {
-        Get.snackbar(
-          'Success',
-          result['message'],
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
-      }
+      // We'll let the AuthService handle both the success message and navigation
+      await _authController.login(emailOrPhone, password);
+      // No snackbar here - AuthService will handle it
     } catch (e) {
       Get.snackbar(
         'Error',
-        'Error: $e',
+        'An unexpected error occurred. Please try again.',
         backgroundColor: Colors.red,
         colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(10),
       );
+      print('Login error: $e');
     }
   }
 

@@ -133,7 +133,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
               SliverAppBar(
                 backgroundColor: AppColors.cardBackground,
                 foregroundColor: AppColors.white,
-                expandedHeight: 500,
+                expandedHeight: 660,
                 pinned: true,
                 floating: false,
                 leading: IconButton(
@@ -161,6 +161,14 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Add the logo at the top
+                          Center(
+                            child: Image.asset(
+                              'assets/images/SkyLogo.png',
+                              height: 120,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           Text(
                             widget.ticketData['subject'] ??
                                 'No subject provided',
@@ -351,7 +359,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Ticket #${widget.ticketData['id'] ?? ''}',
+                  'Ticket ${widget.ticketData['id'] ?? ''}',
                   style: const TextStyle(
                     color: AppColors.primaryBlue,
                     fontSize: 16,
@@ -366,8 +374,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
             _buildInfoRow(
                 'Category', widget.ticketData['category'] ?? 'General Support'),
             if (widget.ticketData['technicalSupportType'] != null)
-              _buildInfoRow(
-                  'Support Type', widget.ticketData['technicalSupportType']),
+              _buildInfoRow('Technical Support Type',
+                  widget.ticketData['technicalSupportType']),
             _buildInfoRow(
                 'Priority', widget.ticketData['priority'] ?? 'Medium'),
             _buildInfoRow('Date', formattedDate),

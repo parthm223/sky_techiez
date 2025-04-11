@@ -115,33 +115,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                             ),
                             const SizedBox(width: 15),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  // ignore: unnecessary_null_comparison
-                                  userDetail != null
-                                      ? '${userDetail.firstName} ${userDetail.lastName}'
-                                      : 'User Name',
-                                  style: const TextStyle(
-                                    color: AppColors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                            Expanded(
+                              child: Text(
+                                userDetail != null
+                                    ? '${userDetail.firstName} ${userDetail.lastName}'
+                                    : 'User Name',
+                                style: const TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                Text(
-                                  userDetail.email ?? 'user@example.com',
-                                  style: TextStyle(
-                                    color: AppColors.white.withOpacity(0.8),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
+                                maxLines: 2, // or null for unlimited lines
+                                overflow: TextOverflow.visible, // optional
+                                softWrap: true,
+                              ),
                             ),
                           ],
                         ),
                         // }),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
                         Center(
                           child: Image.asset(
                             'assets/images/SkyLogo.png',
