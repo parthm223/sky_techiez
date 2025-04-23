@@ -207,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 15),
                             Expanded(
                               child: Text(
+                                // ignore: unnecessary_null_comparison
                                 userDetail != null
                                     ? '${userDetail.firstName} ${userDetail.lastName}'
                                     : 'User Name',

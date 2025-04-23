@@ -22,6 +22,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
   Map<String, dynamic>? _latestAppointment;
   List<Ticket> _userTickets = [];
   bool _isLoading = true;
+  // ignore: unused_field
   bool _hasSubscription = false;
   @override
   void initState() {

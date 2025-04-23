@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:sky_techiez/controllers/auth_controller.dart';
+
 import 'package:sky_techiez/screens/home_screen.dart';
 import 'package:sky_techiez/services/auth_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
@@ -24,9 +24,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
   final _otpController = TextEditingController();
-  bool _otpSent = false;
   bool _isLoading = false;
-  final AuthController _authController = Get.find<AuthController>();
 
   @override
   void initState() {
@@ -54,7 +52,6 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         final success = await AuthService.sendOtp(_emailController.text.trim());
 
         setState(() {
-          _otpSent = success;
           _isLoading = false;
         });
 
