@@ -203,7 +203,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
         if (_selectedIssueTypeName == 'Technical Support' &&
             _selectedTechnicalSupportType != null) {
-          issueText = '${_selectedTechnicalSupportType}: $issueText';
+          issueText = '$_selectedTechnicalSupportType: $issueText';
           print('Modified issue text with technical support type: $issueText');
         }
 

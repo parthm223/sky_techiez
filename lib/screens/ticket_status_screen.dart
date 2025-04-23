@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:sky_techiez/models/ticket.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
-import 'package:sky_techiez/screens/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_details_screen.dart';
 import 'package:sky_techiez/services/appointment_service.dart';
 import 'package:sky_techiez/services/subscription_service.dart';
 import 'package:sky_techiez/services/ticket_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:sky_techiez/widgets/session_string.dart';
+import 'package:http/http.dart' as http;
 
 class TicketStatusScreen extends StatefulWidget {
   const TicketStatusScreen({super.key});
@@ -66,6 +68,16 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
           }
           _isLoading = false;
         });
+      }
+
+      // Debug logging for subcategories
+      for (var ticket in _userTickets) {
+        if (ticket.subcategoryName != null) {
+          print(
+              'Ticket ${ticket.id} has subcategory: ${ticket.subcategoryName}');
+        } else {
+          print('Ticket ${ticket.id} has no subcategory name');
+        }
       }
 
       print('Loaded ${_userTickets.length} tickets');
@@ -151,7 +163,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                             const SizedBox(height: 16),
                           ],
                         );
-                      }).toList(),
+                      }),
                     ],
 
                     // Display default tickets
@@ -194,72 +206,72 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                     ],
 
                     const SizedBox(height: 24),
-                    const SizedBox(height: 24),
-                    _hasSubscription
-                        ? CustomButton(
-                            text: 'Create New Ticket',
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const CreateTicketScreen(),
-                                ),
-                              ).then((_) {
-                                // Refresh tickets when returning from create ticket screen
-                                _loadUserTickets();
-                              });
-                            },
-                          )
-                        : Card(
-                            color: AppColors.cardBackground,
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.subscriptions,
-                                    color: Colors.amber,
-                                    size: 48,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'Subscription Required',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    'You need an active subscription to create support tickets.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: AppColors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  CustomButton(
-                                    text: 'View Subscription Plans',
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const SubscriptionsScreen(),
-                                        ),
-                                      ).then((_) {
-                                        // Refresh subscription status when returning
-                                        _checkSubscriptionStatus();
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
+                    // _hasSubscription
+                    // ?
+                    CustomButton(
+                      text: 'Create New Ticket',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateTicketScreen(),
                           ),
+                        ).then((_) {
+                          // Refresh tickets when returning from create ticket screen
+                          _loadUserTickets();
+                        });
+                      },
+                    )
+
+                    //: Card(
+                    //     color: AppColors.cardBackground,
+                    //     child: Padding(
+                    //       padding: const EdgeInsets.all(16),
+                    //       child: Column(
+                    //         crossAxisAlignment: CrossAxisAlignment.center,
+                    //         children: [
+                    //           const Icon(
+                    //             Icons.subscriptions,
+                    //             color: Colors.amber,
+                    //             size: 48,
+                    //           ),
+                    //           const SizedBox(height: 16),
+                    //           const Text(
+                    //             'Subscription Required',
+                    //             style: TextStyle(
+                    //               fontSize: 18,
+                    //               fontWeight: FontWeight.bold,
+                    //               color: AppColors.white,
+                    //             ),
+                    //           ),
+                    //           const SizedBox(height: 8),
+                    //           const Text(
+                    //             'You need an active subscription to create support tickets.',
+                    //             textAlign: TextAlign.center,
+                    //             style: TextStyle(
+                    //               color: AppColors.grey,
+                    //             ),
+                    //           ),
+                    //           const SizedBox(height: 16),
+                    //           CustomButton(
+                    //             text: 'View Subscription Plans',
+                    //             onPressed: () {
+                    //               Navigator.push(
+                    //                 context,
+                    //                 MaterialPageRoute(
+                    //                   builder: (context) =>
+                    //                       const SubscriptionsScreen(),
+                    //                 ),
+                    //               ).then((_) {
+                    //                 // Refresh subscription status when returning
+                    //                 _checkSubscriptionStatus();
+                    //               });
+                    //             },
+                    //           ),
+                    //         ],
+                    //       ),
+                    //     ),
+                    //   ),
                   ],
                 ),
               ),
@@ -335,13 +347,18 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                subject,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    subject,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Row(
@@ -526,13 +543,30 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                subject,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    subject,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  if (ticketData != null &&
+                      ticketData['subcategory_name'] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Subcategory: ${ticketData['subcategory_name']}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.grey,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 16),
               Row(
@@ -577,16 +611,62 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.close),
-                        label: const Text('Close Ticket'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
+                    if (status == 'Resolved')
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            try {
+                              var headers = {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Authorization':
+                                    (GetStorage().read(tokenKey) ?? '')
+                                        .toString(),
+                              };
+                              var request = http.MultipartRequest(
+                                  'POST',
+                                  Uri.parse(
+                                      'https://tech.skytechiez.co/api/close-ticket/$ticketId'));
+                              request.headers.addAll(headers);
+
+                              http.StreamedResponse response =
+                                  await request.send();
+
+                              if (response.statusCode == 200) {
+                                print(await response.stream.bytesToString());
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Ticket closed successfully'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                // Reload tickets to reflect the status change
+                                _loadUserTickets();
+                              } else {
+                                print(response.reasonPhrase);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Failed to close ticket'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              print('Error closing ticket: $e');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error closing ticket: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.close),
+                          label: const Text('Close Ticket'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 )
               else

@@ -3,7 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class DriversLicenseCaptureScreen extends StatefulWidget {
-  const DriversLicenseCaptureScreen({Key? key}) : super(key: key);
+  const DriversLicenseCaptureScreen({super.key});
 
   @override
   State<DriversLicenseCaptureScreen> createState() =>

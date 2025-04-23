@@ -79,7 +79,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               CustomButton(
-                text: 'Sign In',
+                text: 'Log In',
                 onPressed: () {
                   Navigator.push(
                     context,

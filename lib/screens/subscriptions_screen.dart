@@ -16,12 +16,14 @@ class SubscriptionsScreen extends StatefulWidget {
 class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _subscriptionData;
+  List<dynamic> _plans = [];
   String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
     _fetchSubscriptions();
+    _fetchPlans();
   }
 
   Future<void> _fetchSubscriptions() async {
@@ -44,7 +46,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       if (response.statusCode == 200) {
         final responseBody = await response.stream.bytesToString();
         if (mounted) {
-          // Add this check
           setState(() {
             _subscriptionData = json.decode(responseBody);
             _isLoading = false;
@@ -52,7 +53,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         }
       } else {
         if (mounted) {
-          // Add this check
           setState(() {
             _errorMessage =
                 response.reasonPhrase ?? 'Failed to load subscriptions';
@@ -62,12 +62,40 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        // Add this check
         setState(() {
           _errorMessage = 'Error: ${e.toString()}';
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchPlans() async {
+    try {
+      var headers = {
+        'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+      };
+
+      var request = http.Request(
+          'GET', Uri.parse('https://tech.skytechiez.co/public/api/plans'));
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        final responseBody = await response.stream.bytesToString();
+        if (mounted) {
+          setState(() {
+            final data = json.decode(responseBody);
+            // Parse plans according to the specified payload format
+            _plans = data['plans'] ?? [];
+          });
+        }
+      } else {
+        print('Failed to load plans: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print('Error fetching plans: ${e.toString()}');
     }
   }
 
@@ -169,24 +197,22 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   Widget _buildSubscriptionPlans() {
-    // If we have subscription plans from the API, display them
-    if (_subscriptionData != null &&
-        _subscriptionData!.containsKey('plans') &&
-        _subscriptionData!['plans'] is List) {
-      List<dynamic> plans = _subscriptionData!['plans'];
-
+    // Display plans according to the specified payload format
+    if (_plans.isNotEmpty) {
       return Column(
-        children: plans.map<Widget>((plan) {
+        children: _plans.map<Widget>((plan) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: _buildSubscriptionPlan(
               context,
+              plan['id'] ?? 0,
               plan['name'] ?? 'Unknown Plan',
+              plan['price'] ?? '0.0',
               plan['description'] ?? 'No description available',
-              '\$${plan['price'] ?? '0.0'}',
-              plan['period'] ?? 'Monthly',
-              List<String>.from(plan['features'] ?? []),
-              isPremium: plan['is_premium'] ?? false,
+              plan['status'] ?? 0,
+              plan['duration'] ?? 0,
+              plan['created_at'] ?? '',
+              plan['updated_at'] ?? '',
             ),
           );
         }).toList(),
@@ -195,12 +221,14 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       // Fallback to the default plan if no plans from API
       return _buildSubscriptionPlan(
         context,
+        1,
         'Premium Plan',
+        '30.0',
         'Access to all features',
-        '\$30.0',
-        'Monthly',
-        ['24/7 support', 'All features', 'Multiple users', 'Priority service'],
-        isPremium: true,
+        1,
+        30,
+        '2023-01-01',
+        '2023-01-01',
       );
     }
   }
@@ -209,7 +237,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (_subscriptionData == null) return false;
 
     // Check if user has an active subscription based on your API response structure
-    // This is an example - adjust according to your actual API response
     return _subscriptionData!.containsKey('active_subscription') &&
         _subscriptionData!['active_subscription'] != null;
   }
@@ -218,19 +245,31 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (!_hasActiveSubscription()) return 'N/A';
 
     // Extract expiry date from your API response
-    // This is an example - adjust according to your actual API response
     return _subscriptionData!['active_subscription']['expiry_date'] ?? 'N/A';
   }
 
   Widget _buildSubscriptionPlan(
     BuildContext context,
-    String title,
-    String description,
+    int id,
+    String name,
     String price,
-    String period,
-    List<String> features, {
-    bool isPremium = false,
-  }) {
+    String description,
+    int status,
+    int duration,
+    String createdAt,
+    String updatedAt,
+  ) {
+    // Generate features based on description
+    List<String> features = [
+      '$duration Month subscription',
+      description,
+      'Created on: ${_formatDate(createdAt)}',
+    ];
+
+    bool isPremium = price.isNotEmpty &&
+        double.tryParse(price) != null &&
+        double.parse(price) > 20.0;
+
     return Card(
       elevation: 2,
       color: AppColors.cardBackground,
@@ -245,14 +284,14 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
+            Row(children: [
+              Expanded(
+                // ← Ensures the text takes available space
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      name,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -262,6 +301,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       description,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.grey,
@@ -269,40 +310,28 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     ),
                   ],
                 ),
-                if (isPremium)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Text(
-                      'RECOMMENDED',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+              ),
+            ]),
             const SizedBox(height: 16),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  price,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBlue,
+                Flexible(
+                  // ← Allows price to shrink if needed
+                  child: Text(
+                    '\$$price',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlue,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '/ $period',
+                  '/ $duration Month',
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.grey,
@@ -323,9 +352,13 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                         color: AppColors.primaryBlue,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        feature,
-                        style: const TextStyle(color: AppColors.white),
+                      Expanded(
+                        child: Text(
+                          feature,
+                          style: const TextStyle(color: AppColors.white),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
@@ -334,12 +367,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
             CustomButton(
               text: _hasActiveSubscription() &&
                       _subscriptionData!['active_subscription']['plan_id'] ==
-                          title
+                          id.toString()
                   ? 'Current Plan'
                   : 'Subscribe Now',
               onPressed: () {
-                // Handle subscription process
-                _handleSubscription(title);
+                _handleSubscription(name, id.toString());
               },
             ),
           ],
@@ -348,9 +380,18 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  void _handleSubscription(String planTitle) {
+  String _formatDate(String dateString) {
+    try {
+      final DateTime date = DateTime.parse(dateString);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  void _handleSubscription(String planTitle, String planId) {
     // Implement your subscription logic here
     // This could navigate to a payment screen or call another API
-    print('Subscribing to plan: $planTitle');
+    print('Subscribing to plan: $planTitle (ID: $planId)');
   }
 }

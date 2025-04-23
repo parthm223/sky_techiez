@@ -3,7 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class PassportCaptureScreen extends StatefulWidget {
-  const PassportCaptureScreen({Key? key}) : super(key: key);
+  const PassportCaptureScreen({super.key});
 
   @override
   State<PassportCaptureScreen> createState() => _PassportCaptureScreenState();

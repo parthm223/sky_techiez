@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/services/ticket_service.dart';
+import 'package:sky_techiez/services/comment_service.dart';
 
 class TicketDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> ticketData;
 
   const TicketDetailsScreen({
-    Key? key,
+    super.key,
     required this.ticketData,
-  }) : super(key: key);
+  });
 
   @override
   State<TicketDetailsScreen> createState() => _TicketDetailsScreenState();
@@ -18,11 +20,13 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     with SingleTickerProviderStateMixin {
   bool _isCommentVisible = false;
   final TextEditingController _commentController = TextEditingController();
-  final List<String> _comments = [];
+  List<Map<String, dynamic>> _comments = [];
   late TabController _tabController;
   int _selectedTabIndex = 0;
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
+  bool _isLoadingComments = false;
+  bool _hasCommentError = false;
 
   @override
   void initState() {
@@ -31,6 +35,10 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     _tabController.addListener(() {
       setState(() {
         _selectedTabIndex = _tabController.index;
+        // Load comments when switching to comments tab
+        if (_selectedTabIndex == 1) {
+          _fetchComments();
+        }
       });
     });
 
@@ -52,29 +60,82 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
           // Update the ticket data with the fetched details
           widget.ticketData.addAll(ticket.toJson());
           _isLoading = false;
+
+          // Debug logging for subcategory
+          if (widget.ticketData['subcategory_name'] != null) {
+            print(
+                'Ticket details has subcategory: ${widget.ticketData['subcategory_name']}');
+          } else {
+            print('Ticket details has no subcategory name');
+          }
         });
       } else {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ticket not found'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showErrorSnackBar('Ticket not found');
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading ticket: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showErrorSnackBar('Error loading ticket: $e');
     }
+  }
+
+  Future<void> _fetchComments() async {
+    if (widget.ticketData['id'] == null) return;
+
+    // Don't reload if already loading
+    if (_isLoadingComments) return;
+
+    setState(() {
+      _isLoadingComments = true;
+      _hasCommentError = false;
+    });
+
+    try {
+      final comments =
+          await CommentService.getComments(widget.ticketData['id'].toString());
+
+      if (mounted) {
+        setState(() {
+          _comments = comments;
+          _isLoadingComments = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingComments = false;
+          _hasCommentError = true;
+        });
+        _showErrorSnackBar('Unable to load comments. Please try again.');
+        print('Error in _fetchComments: $e');
+      }
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        action: SnackBarAction(
+          label: 'Retry',
+          onPressed: () {
+            if (_selectedTabIndex == 1) {
+              _fetchComments();
+            } else if (widget.ticketData.containsKey('id')) {
+              _fetchTicketDetails(widget.ticketData['id']);
+            }
+          },
+          textColor: Colors.white,
+        ),
+      ),
+    );
   }
 
   @override
@@ -91,17 +152,80 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     });
   }
 
-  void _addComment() {
-    if (_commentController.text.trim().isNotEmpty) {
+  Future<void> _addComment() async {
+    if (_commentController.text.trim().isEmpty ||
+        widget.ticketData['id'] == null) {
+      return;
+    }
+
+    final comment = _commentController.text;
+    final ticketId = widget.ticketData['id'].toString();
+
+    // Disable the comment field while submitting
+    setState(() {
+      _isLoadingComments = true;
+    });
+
+    try {
+      // Add retry logic
+      bool success = false;
+      int retryCount = 0;
+
+      while (!success && retryCount < 2) {
+        success = await CommentService.addComment(ticketId, comment);
+
+        if (!success) {
+          retryCount++;
+          // Wait a moment before retrying
+          if (retryCount < 2) {
+            await Future.delayed(const Duration(seconds: 1));
+          }
+        }
+      }
+
+      if (success) {
+        // Clear the comment field first
+        setState(() {
+          _commentController.clear();
+          _isCommentVisible = false;
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Comment added successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Refresh comments after adding a new one
+        await _fetchComments();
+      } else {
+        setState(() {
+          _isLoadingComments = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to add comment. Please try again.'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _addComment,
+              textColor: Colors.white,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
       setState(() {
-        _comments.add(_commentController.text);
-        _commentController.clear();
-        _isCommentVisible = false;
+        _isLoadingComments = false;
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Comment added successfully'),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: Text('Error adding comment: $e'),
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -222,19 +346,26 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                   child: Column(
                     children: [
                       _buildProgressItem('New ticket', true),
-                      _buildProgressItem('Acknowledged by Support',
-                          widget.ticketData['status'] != 'New'),
-                      _buildProgressItem(
-                          'Assigned to Technician',
-                          widget.ticketData['status'] == 'In Progress' ||
-                              widget.ticketData['status'] == 'Completed'),
-                      _buildProgressItem(
-                          'In Progress',
-                          widget.ticketData['status'] == 'In Progress' ||
-                              widget.ticketData['status'] == 'Completed'),
-                      _buildProgressItem(
-                          'Solved', widget.ticketData['status'] == 'Completed',
-                          isLast: true),
+                      if (widget.ticketData['status'] != 'Completed' &&
+                          widget.ticketData['status'] != 'Resolved') ...[
+                        _buildProgressItem('Acknowledged by Support',
+                            widget.ticketData['status'] != 'New'),
+                        _buildProgressItem('Assigned to Technician',
+                            widget.ticketData['status'] == 'In Progress'),
+                        _buildProgressItem('In Progress',
+                            widget.ticketData['status'] == 'In Progress'),
+                        _buildProgressItem('Resolved', false, isLast: true),
+                      ] else if (widget.ticketData['status'] == 'Resolved') ...[
+                        _buildProgressItem('Acknowledged by Support', true),
+                        _buildProgressItem('Assigned to Technician', true),
+                        _buildProgressItem('In Progress', true),
+                        _buildProgressItem('Resolved', true, isLast: true),
+                      ] else ...[
+                        _buildProgressItem('Acknowledged by Support', true),
+                        _buildProgressItem('Assigned to Technician', true),
+                        _buildProgressItem('In Progress', true),
+                        _buildProgressItem('Resolved', true, isLast: true),
+                      ],
                     ],
                   ),
                 ),
@@ -283,50 +414,141 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                                 ),
                                 const SizedBox(width: 8),
                                 ElevatedButton(
-                                  onPressed: _addComment,
+                                  onPressed:
+                                      _isLoadingComments ? null : _addComment,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primaryBlue,
                                     foregroundColor: AppColors.white,
                                   ),
-                                  child: const Text('Submit'),
+                                  child: _isLoadingComments
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppColors.white,
+                                          ),
+                                        )
+                                      : const Text('Submit'),
                                 ),
                               ],
                             ),
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _comments.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index == 0) {
-                            // System comment
-                            return _buildCommentCard(
-                              'Support Team',
-                              'Your ticket has been received. Our team will review it shortly.',
-                              isSupport: true,
-                            );
-                          }
-                          final comment = _comments[index - 1];
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 16),
-                            child: _buildCommentCard('You', comment),
-                          );
-                        },
-                      ),
+                    : _isLoadingComments
+                        ? const Center(child: CircularProgressIndicator())
+                        : _hasCommentError
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.error_outline,
+                                      color: Colors.red,
+                                      size: 48,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'Failed to load comments',
+                                      style: TextStyle(
+                                        color: AppColors.grey,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    ElevatedButton(
+                                      onPressed: _fetchComments,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primaryBlue,
+                                      ),
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : _comments.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.comment_outlined,
+                                          color: AppColors.grey,
+                                          size: 48,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        const Text(
+                                          'No comments yet',
+                                          style: TextStyle(
+                                            color: AppColors.grey,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        TextButton(
+                                          onPressed: _toggleCommentField,
+                                          child: const Text(
+                                            'Add a comment',
+                                            style: TextStyle(
+                                              color: AppColors.primaryBlue,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : RefreshIndicator(
+                                    onRefresh: _fetchComments,
+                                    color: AppColors.primaryBlue,
+                                    child: ListView.builder(
+                                      padding: const EdgeInsets.all(16),
+                                      itemCount: _comments.length + 1,
+                                      itemBuilder: (context, index) {
+                                        if (index == 0) {
+                                          // System comment
+                                          return _buildChatBubble(
+                                            'Support Team',
+                                            'Your ticket has been received. Our team will review it shortly.',
+                                            isUserComment: false,
+                                          );
+                                        }
+                                        final comment = _comments[index - 1];
+                                        final isUserComment = comment['user_id']
+                                                .toString() ==
+                                            (GetStorage().read('user_id') ?? '')
+                                                .toString();
+
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 16),
+                                          child: _buildChatBubble(
+                                            isUserComment
+                                                ? 'You'
+                                                : 'Support Team',
+                                            comment['comment'] ?? '',
+                                            isUserComment: isUserComment,
+                                            timestamp: comment['created_at'],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
               )
             ],
           ),
         ),
       ),
-      floatingActionButton: _selectedTabIndex == 1
-          ? FloatingActionButton(
-              backgroundColor: AppColors.primaryBlue,
-              onPressed: _toggleCommentField,
-              child: const Icon(Icons.add_comment, color: AppColors.white),
-              elevation: 4,
-            )
-          : null,
+      floatingActionButton:
+          _selectedTabIndex == 1 && !_isCommentVisible && !_isLoadingComments
+              ? FloatingActionButton(
+                  backgroundColor: AppColors.primaryBlue,
+                  onPressed: _toggleCommentField,
+                  elevation: 4,
+                  child: const Icon(Icons.add_comment, color: AppColors.white),
+                )
+              : null,
     );
   }
 
@@ -343,152 +565,158 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     }
 
     return Card(
-      color: AppColors.cardBackground.withOpacity(0.7),
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side:
-            BorderSide(color: AppColors.primaryBlue.withOpacity(0.3), width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Ticket ${widget.ticketData['id'] ?? ''}',
-                  style: const TextStyle(
-                    color: AppColors.primaryBlue,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                _buildStatusBadge(widget.ticketData['status'] ?? 'New'),
-              ],
-            ),
-            const Divider(color: AppColors.lightGrey, height: 24),
-            _buildInfoRow('Assigned to', 'Support Team'),
-            _buildInfoRow(
-                'Category', widget.ticketData['category'] ?? 'General Support'),
-            if (widget.ticketData['technicalSupportType'] != null)
-              _buildInfoRow('Technical Support Type',
-                  widget.ticketData['technicalSupportType']),
-            _buildInfoRow(
-                'Priority', widget.ticketData['priority'] ?? 'Medium'),
-            _buildInfoRow('Date', formattedDate),
-            const Divider(color: AppColors.lightGrey, height: 24),
-            const Text(
-              'Description',
-              style: TextStyle(
-                color: AppColors.grey,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              widget.ticketData['description'] ?? 'No description provided',
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 14,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if ((widget.ticketData['description'] ?? '').length > 100)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    // Show full description in a dialog
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: AppColors.cardBackground,
-                        title: const Text(
-                          'Full Description',
-                          style: TextStyle(color: AppColors.white),
-                        ),
-                        content: SingleChildScrollView(
-                          child: Text(
-                            widget.ticketData['description'] ?? '',
-                            style: const TextStyle(color: AppColors.white),
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Read More',
-                    style: TextStyle(color: AppColors.primaryBlue),
-                  ),
-                ),
-              ),
-            // Show attachment if available
-            if (widget.ticketData['attachment_url'] != null &&
-                widget.ticketData['attachment_url'].toString().isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        color: AppColors.cardBackground.withOpacity(0.7),
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+              color: AppColors.primaryBlue.withOpacity(0.3), width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const SizedBox(height: 16),
-                  const Divider(color: AppColors.lightGrey),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Attachment',
-                    style: TextStyle(
-                      color: AppColors.grey,
-                      fontSize: 14,
+                  Text(
+                    'Ticket ${widget.ticketData['id'] ?? ''}',
+                    style: const TextStyle(
+                      color: AppColors.primaryBlue,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () {
-                      // Open attachment (would need to implement a viewer)
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: AppColors.primaryBlue.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.attach_file,
-                              color: AppColors.primaryBlue, size: 20),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              'View Attachment',
-                              style: const TextStyle(
-                                color: AppColors.primaryBlue,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _buildStatusBadge(widget.ticketData['status'] ?? 'New'),
                 ],
               ),
-          ],
-        ),
-      ),
-    );
+              const Divider(color: AppColors.lightGrey, height: 24),
+              _buildInfoRow('Assigned to', 'Support Team'),
+              _buildInfoRow(
+                  'Category',
+                  widget.ticketData['category_name'] ??
+                      widget.ticketData['category'] ??
+                      'General Support'),
+              if (widget.ticketData['subcategory_name'] != null)
+                _buildInfoRow(
+                    'Subcategory', widget.ticketData['subcategory_name']),
+              if (widget.ticketData['subcategory_name'] == null &&
+                  widget.ticketData['technicalSupportType'] != null)
+                _buildInfoRow('Technical Support Type',
+                    widget.ticketData['technicalSupportType']),
+              _buildInfoRow(
+                  'Priority', widget.ticketData['priority'] ?? 'Medium'),
+              _buildInfoRow('Date', formattedDate),
+              const Divider(color: AppColors.lightGrey, height: 24),
+              const Text(
+                'Description',
+                style: TextStyle(
+                  color: AppColors.grey,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.ticketData['description'] ?? 'No description provided',
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: 14,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if ((widget.ticketData['description'] ?? '').length > 100)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      // Show full description in a dialog
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: AppColors.cardBackground,
+                          title: const Text(
+                            'Full Description',
+                            style: TextStyle(color: AppColors.white),
+                          ),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              widget.ticketData['description'] ?? '',
+                              style: const TextStyle(color: AppColors.white),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Read More',
+                      style: TextStyle(color: AppColors.primaryBlue),
+                    ),
+                  ),
+                ),
+              // Show attachment if available
+              if (widget.ticketData['attachment_url'] != null &&
+                  widget.ticketData['attachment_url'].toString().isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    const Divider(color: AppColors.lightGrey),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Attachment',
+                      style: TextStyle(
+                        color: AppColors.grey,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () {
+                        // Open attachment (would need to implement a viewer)
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: AppColors.primaryBlue.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.attach_file,
+                                color: AppColors.primaryBlue, size: 20),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'View Attachment',
+                                style: const TextStyle(
+                                  color: AppColors.primaryBlue,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ));
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -500,7 +728,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
           SizedBox(
             width: 100,
             child: Text(
-              label + ':',
+              '$label:',
               style: const TextStyle(
                 color: AppColors.grey,
                 fontSize: 14,
@@ -522,69 +750,128 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     );
   }
 
-  Widget _buildCommentCard(String author, String content,
-      {bool isSupport = false}) {
-    return Card(
-      color: isSupport
-          ? AppColors.primaryBlue.withOpacity(0.1)
-          : AppColors.cardBackground,
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isSupport
-              ? AppColors.primaryBlue.withOpacity(0.3)
-              : AppColors.lightGrey.withOpacity(0.5),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor:
-                      isSupport ? AppColors.primaryBlue : AppColors.white,
-                  child: Icon(
-                    isSupport ? Icons.support_agent : Icons.person,
-                    color:
-                        isSupport ? AppColors.white : AppColors.cardBackground,
-                    size: 20,
+  // New chat bubble implementation
+  Widget _buildChatBubble(String author, String content,
+      {required bool isUserComment, String? timestamp}) {
+    // Format timestamp if available
+    String formattedTime = 'Just now';
+    if (timestamp != null) {
+      try {
+        final dateTime = DateTime.parse(timestamp);
+        final now = DateTime.now();
+        final difference = now.difference(dateTime);
+
+        if (difference.inDays > 365) {
+          formattedTime = '${(difference.inDays / 365).floor()} years ago';
+        } else if (difference.inDays > 30) {
+          formattedTime = '${(difference.inDays / 30).floor()} months ago';
+        } else if (difference.inDays > 0) {
+          formattedTime = '${difference.inDays} days ago';
+        } else if (difference.inHours > 0) {
+          formattedTime = '${difference.inHours} hours ago';
+        } else if (difference.inMinutes > 0) {
+          formattedTime = '${difference.inMinutes} minutes ago';
+        }
+      } catch (e) {
+        // Use default if parsing fails
+      }
+    }
+
+    return Row(
+      mainAxisAlignment:
+          isUserComment ? MainAxisAlignment.end : MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!isUserComment) ...[
+          CircleAvatar(
+            backgroundColor: AppColors.primaryBlue,
+            radius: 16,
+            child: const Icon(
+              Icons.support_agent,
+              color: AppColors.white,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        Flexible(
+          child: Column(
+            crossAxisAlignment: isUserComment
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isUserComment
+                      ? AppColors.primaryBlue.withOpacity(0.2)
+                      : AppColors.primaryBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(16),
+                    topRight: const Radius.circular(16),
+                    bottomLeft: Radius.circular(isUserComment ? 16 : 4),
+                    bottomRight: Radius.circular(isUserComment ? 4 : 16),
+                  ),
+                  border: Border.all(
+                    color: isUserComment
+                        ? AppColors.primaryBlue.withOpacity(0.3)
+                        : AppColors.primaryBlue.withOpacity(0.2),
+                    width: 1,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  author,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isSupport ? AppColors.primaryBlue : AppColors.white,
-                    fontSize: 16,
-                  ),
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.75,
                 ),
-                const Spacer(),
-                Text(
-                  'Just now',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      author,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isUserComment
+                            ? AppColors.primaryBlue
+                            : AppColors.primaryBlue,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      content,
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
+                child: Text(
+                  formattedTime,
                   style: TextStyle(
                     color: AppColors.grey.withOpacity(0.7),
-                    fontSize: 12,
+                    fontSize: 10,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              content,
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 14,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+        if (isUserComment) ...[
+          const SizedBox(width: 8),
+          CircleAvatar(
+            backgroundColor: AppColors.white,
+            radius: 16,
+            child: const Icon(
+              Icons.person,
+              color: AppColors.cardBackground,
+              size: 16,
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -594,7 +881,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
       statusColor = Colors.blue;
     } else if (status.toLowerCase() == 'pending') {
       statusColor = Colors.orange;
-    } else if (status.toLowerCase() == 'completed') {
+    } else if (status.toLowerCase() == 'completed' ||
+        status.toLowerCase() == 'resolved') {
       statusColor = Colors.green;
     } else if (status.toLowerCase() == 'new') {
       statusColor = Colors.purple;

@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:sky_techiez/controllers/auth_controller.dart';
 import 'package:sky_techiez/screens/home_screen.dart';
+import 'package:sky_techiez/services/auth_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
 
 class VerifyOtpScreen extends StatefulWidget {
-  const VerifyOtpScreen({super.key});
+  final String email;
+
+  const VerifyOtpScreen({
+    super.key,
+    required this.email,
+  });
 
   @override
   State<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
@@ -14,9 +22,19 @@ class VerifyOtpScreen extends StatefulWidget {
 
 class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  late final TextEditingController _emailController;
   final _otpController = TextEditingController();
   bool _otpSent = false;
+  bool _isLoading = false;
+  final AuthController _authController = Get.find<AuthController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.email);
+    // Automatically send OTP when screen loads
+    _sendOtp();
+  }
 
   @override
   void dispose() {
@@ -25,18 +43,108 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     super.dispose();
   }
 
-  void _sendOtp() {
-    if (_formKey.currentState!.validate()) {
-      // In a real app, you would send an OTP to the email
+  Future<void> _sendOtp() async {
+    if (_formKey.currentState?.validate() ?? true) {
       setState(() {
-        _otpSent = true;
+        _isLoading = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('OTP sent to your email'),
-          backgroundColor: AppColors.primaryBlue,
-        ),
-      );
+
+      try {
+        // Call the service to send OTP
+        final success = await AuthService.sendOtp(_emailController.text.trim());
+
+        setState(() {
+          _otpSent = success;
+          _isLoading = false;
+        });
+
+        if (success) {
+          Get.snackbar(
+            'Success',
+            'OTP sent to your email',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(10),
+          );
+        } else {
+          Get.snackbar(
+            'Error',
+            'Failed to send OTP. Please try again.',
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(10),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        Get.snackbar(
+          'Error',
+          'An unexpected error occurred: $e',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(10),
+        );
+      }
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Call the service to verify OTP
+        final success = await AuthService.verifyOtp(
+          _emailController.text.trim(),
+          _otpController.text.trim(),
+        );
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (success) {
+          Get.snackbar(
+            'Success',
+            'OTP verified successfully',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(10),
+          );
+
+          // Navigate to home screen after successful verification
+          Get.offAll(() => const HomeScreen());
+        } else {
+          Get.snackbar(
+            'Error',
+            'Invalid OTP. Please try again.',
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(10),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        Get.snackbar(
+          'Error',
+          'An unexpected error occurred: $e',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(10),
+        );
+      }
     }
   }
 
@@ -44,7 +152,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify'),
+        title: const Text('Verify OTP'),
+        backgroundColor: AppColors.primaryBlue,
+        foregroundColor: Colors.white,
       ),
       body: SafeArea(
         child: Padding(
@@ -57,12 +167,12 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                 Center(
                   child: Image.asset(
                     'assets/images/SkyLogo.png',
-                    height: 200,
+                    height: 120,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 const Text(
-                  'Verify',
+                  'Verify Your Account',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -70,100 +180,51 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Send only Email',
-                  style: TextStyle(
+                Text(
+                  'We have sent a verification code to ${_emailController.text}',
+                  style: const TextStyle(
                     fontSize: 16,
                     color: AppColors.grey,
                   ),
                 ),
-                const SizedBox(height: 24),
-                if (!_otpSent)
-                  CustomTextField(
-                    label: 'Email',
-                    hint: 'Enter your email address',
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                          .hasMatch(value)) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                if (_otpSent) ...[
-                  CustomTextField(
-                    label: 'OTP',
-                    hint: 'Enter OTP sent to your email',
-                    controller: _otpController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(6),
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter the OTP';
-                      }
-                      if (value.length < 4) {
-                        return 'OTP must be at least 4 digits';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton(
-                      onPressed: _sendOtp,
-                      child: const Text(
-                        'Resend OTP',
-                        style: TextStyle(color: AppColors.primaryBlue),
-                      ),
+                const SizedBox(height: 32),
+                CustomTextField(
+                  label: 'OTP Code',
+                  hint: 'Enter the 6-digit code',
+                  controller: _otpController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the OTP code';
+                    }
+                    if (value.length < 4) {
+                      return 'OTP must be at least 4 digits';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _isLoading ? null : _sendOtp,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Resend OTP'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primaryBlue,
                     ),
                   ),
-                ],
+                ),
                 const Spacer(),
-                if (!_otpSent)
-                  CustomButton(
-                    text: 'Send OTP',
-                    onPressed: _sendOtp,
-                  )
-                else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      CustomButton(
-                        text: 'Back',
-                        onPressed: () {
-                          setState(() {
-                            _otpSent = false;
-                          });
-                        },
-                        isOutlined: true,
-                        width: 120,
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : CustomButton(
+                        text: 'Verify & Continue',
+                        onPressed: _verifyOtp,
                       ),
-                      CustomButton(
-                        text: 'Submit',
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            // In a real app, you would verify the OTP here
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HomeScreen(),
-                              ),
-                              (route) => false,
-                            );
-                          }
-                        },
-                        width: 120,
-                      ),
-                    ],
-                  ),
               ],
             ),
           ),

@@ -7,7 +7,7 @@ import 'package:sky_techiez/screens/create_ticket_screen.dart';
 import 'package:sky_techiez/screens/services_screen.dart';
 import 'package:sky_techiez/screens/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_details_screen.dart';
-import 'package:sky_techiez/services/appointment_service.dart';
+
 import 'package:sky_techiez/services/subscription_service.dart';
 import 'package:sky_techiez/services/ticket_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
@@ -22,7 +22,6 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
-  Map<String, dynamic>? _latestAppointment;
   Ticket? _latestTicket;
   bool _isLoadingTicket = true;
   bool _hasSubscription = false;
@@ -30,11 +29,9 @@ class _HomeContentState extends State<HomeContent> {
   String? _tollFreeNumber;
   bool _isLoadingTollFreeNumber = false;
 
-// Modify the initState method to check subscription status:
   @override
   void initState() {
     super.initState();
-    _loadAppointmentDetails();
     _loadLatestTicket();
     _checkSubscriptionStatus();
     _fetchSettings();
@@ -69,9 +66,22 @@ class _HomeContentState extends State<HomeContent> {
         Map<String, dynamic> data = json.decode(responseBody);
         print('Parsed response data: $data');
 
+        // Extract toll-free number from the nested structure
+        String extractedNumber = '1-800-123-4567'; // Default fallback
+        if (data['settings'] != null && data['settings'] is List) {
+          for (var setting in data['settings']) {
+            if (setting['key'] == 'toll_free_number') {
+              extractedNumber = setting['value'] ?? extractedNumber;
+              break;
+            }
+          }
+        }
+
+        print('Extracted toll-free number: $extractedNumber');
+
         if (mounted) {
           setState(() {
-            _tollFreeNumber = data['toll_free_number'] ?? '1-800-123-4567';
+            _tollFreeNumber = extractedNumber;
             print('Toll-free number set to: $_tollFreeNumber');
           });
         }
@@ -104,7 +114,13 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
-// Add this method to check subscription status:
+  String _formatPhoneNumber(String number) {
+    if (number.length == 10) {
+      return '${number.substring(0, 3)}-${number.substring(3, 6)}-${number.substring(6)}';
+    }
+    return number;
+  }
+
   Future<void> _checkSubscriptionStatus() async {
     setState(() {
       _isCheckingSubscription = true;
@@ -116,15 +132,6 @@ class _HomeContentState extends State<HomeContent> {
       setState(() {
         _hasSubscription = hasSubscription;
         _isCheckingSubscription = false;
-      });
-    }
-  }
-
-  void _loadAppointmentDetails() {
-    final appointmentData = AppointmentService.getAppointment();
-    if (appointmentData != null) {
-      setState(() {
-        _latestAppointment = appointmentData;
       });
     }
   }
@@ -142,7 +149,6 @@ class _HomeContentState extends State<HomeContent> {
       final localTickets = TicketService.getAllTickets();
 
       if (mounted) {
-        // Add this check
         setState(() {
           // Use API tickets if available, otherwise use local tickets
           final allTickets = apiTickets.isNotEmpty ? apiTickets : localTickets;
@@ -151,13 +157,20 @@ class _HomeContentState extends State<HomeContent> {
           _latestTicket = allTickets.isNotEmpty ? allTickets.first : null;
           _isLoadingTicket = false;
         });
+
+        // Debug logging for subcategory name
+        if (_latestTicket != null && _latestTicket!.subcategoryName != null) {
+          print(
+              'Latest ticket has subcategory: ${_latestTicket!.subcategoryName}');
+        } else if (_latestTicket != null) {
+          print('Latest ticket has no subcategory name');
+        }
       }
     } catch (e) {
       print('Error loading latest ticket: $e');
       // Fall back to local tickets if API fails
       final localTickets = TicketService.getAllTickets();
       if (mounted) {
-        // Add this check
         setState(() {
           _latestTicket = localTickets.isNotEmpty ? localTickets.first : null;
           _isLoadingTicket = false;
@@ -196,79 +209,6 @@ class _HomeContentState extends State<HomeContent> {
           Divider(),
           const SizedBox(height: 16),
 
-          // Display appointment details if available
-          if (_latestAppointment != null) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primaryBlue, width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Your Upcoming Appointment',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryBlue,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close,
-                            size: 18, color: AppColors.grey),
-                        onPressed: () {
-                          setState(() {
-                            _latestAppointment = null;
-                            AppointmentService.clearAppointment();
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildAppointmentDetailRow(
-                    'Issue Type:',
-                    _latestAppointment!['issue_type'] ?? 'N/A',
-                  ),
-                  _buildAppointmentDetailRow(
-                    'Issue:',
-                    _latestAppointment!['issue'] ?? 'N/A',
-                  ),
-                  _buildAppointmentDetailRow(
-                    'Date & Time:',
-                    '${_latestAppointment!['date'] ?? 'N/A'} at ${_latestAppointment!['time'] ?? 'N/A'}',
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.hourglass_top,
-                        color: Colors.green,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _latestAppointment!['status'] ?? 'Status',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-
           // Display latest ticket if available
           if (_latestTicket != null) ...[
             Container(
@@ -295,19 +235,25 @@ class _HomeContentState extends State<HomeContent> {
                       )
                     ],
                   ),
-                  _buildAppointmentDetailRow(
+                  _buildTicketDetailRow(
                     'Subject:',
                     _latestTicket!.subject,
                   ),
-                  _buildAppointmentDetailRow(
+                  _buildTicketDetailRow(
                     'Category:',
-                    _latestTicket!.category,
+                    _latestTicket!.categoryName,
                   ),
-                  _buildAppointmentDetailRow(
+                  // Add this code to display subcategory if available
+                  if (_latestTicket!.subcategoryName != null)
+                    _buildTicketDetailRow(
+                      'Sub Category:',
+                      _latestTicket!.subcategoryName,
+                    ),
+                  _buildTicketDetailRow(
                     'Priority:',
                     _latestTicket!.priority,
                   ),
-                  _buildAppointmentDetailRow(
+                  _buildTicketDetailRow(
                     'Date:',
                     _latestTicket!.date,
                   ),
@@ -330,21 +276,40 @@ class _HomeContentState extends State<HomeContent> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TicketDetailsScreen(
-                            ticketData: _latestTicket!.toJson(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TicketDetailsScreen(
+                                  ticketData: _latestTicket!.toJson(),
+                                ),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.purple,
+                          ),
+                          child: const Text('View Details'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // Only show Close Ticket button if ticket status is Resolved
+                      if (_latestTicket!.status == 'Resolved')
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _handleCloseTicket,
+                            icon: const Icon(Icons.close),
+                            label: const Text('Close Ticket'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
                           ),
                         ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.purple,
-                    ),
-                    child: const Text('View Details'),
+                    ],
                   ),
                 ],
               ),
@@ -591,7 +556,10 @@ class _HomeContentState extends State<HomeContent> {
                   _isLoadingTollFreeNumber
                       ? const CircularProgressIndicator()
                       : Text(
-                          _tollFreeNumber ?? '1-800-123-4567',
+                          _isLoadingTollFreeNumber
+                              ? 'Loading...'
+                              : _formatPhoneNumber(
+                                  _tollFreeNumber ?? '1-800-123-4567'),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -607,7 +575,7 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  Widget _buildAppointmentDetailRow(String label, String value) {
+  Widget _buildTicketDetailRow(String label, String? value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
@@ -625,7 +593,7 @@ class _HomeContentState extends State<HomeContent> {
           ),
           Expanded(
             child: Text(
-              value,
+              value ?? 'Not specified',
               style: const TextStyle(
                 fontWeight: FontWeight.w500,
               ),
@@ -636,13 +604,67 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
+  Future<void> _handleCloseTicket() async {
+    if (_latestTicket == null) return;
+
+    setState(() {
+      _isLoadingTicket = true;
+    });
+
+    try {
+      var headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+      };
+      var request = http.MultipartRequest(
+          'POST',
+          Uri.parse(
+              'https://tech.skytechiez.co/api/close-ticket/${_latestTicket!.id}'));
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ticket closed successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Reload the latest ticket to reflect the status change
+        _loadLatestTicket();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to close ticket: ${response.reasonPhrase}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isLoadingTicket = false;
+        });
+      }
+    } catch (e) {
+      print('Error closing ticket: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error closing ticket: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _isLoadingTicket = false;
+      });
+    }
+  }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'In Progress':
         return Colors.blue;
       case 'Pending':
         return Colors.orange;
-      case 'Completed':
+      case 'Resolved':
         return Colors.green;
       case 'New':
         return Colors.purple;
@@ -657,7 +679,7 @@ class _HomeContentState extends State<HomeContent> {
         return Icons.pending_actions;
       case 'Pending':
         return Icons.hourglass_empty;
-      case 'Completed':
+      case 'Resolved':
         return Icons.check_circle;
       case 'New':
         return Icons.fiber_new;

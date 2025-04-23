@@ -6,9 +6,7 @@ import 'package:sky_techiez/models/ticket.dart';
 import 'package:sky_techiez/widgets/session_string.dart';
 
 class TicketService {
-  // Existing methods...
-
-  static List<Ticket> _tickets = [];
+  static final List<Ticket> _tickets = [];
 
   static List<Ticket> getAllTickets() {
     return _tickets;
@@ -19,14 +17,12 @@ class TicketService {
   }
 
   static Future<Ticket?> getTicketById(String id) async {
-    // First check local tickets
     for (var ticket in _tickets) {
       if (ticket.id == id) {
         return ticket;
       }
     }
 
-    // If not found locally, try to fetch from API
     try {
       final apiTickets = await fetchTicketsFromApi();
       for (var ticket in apiTickets) {
@@ -41,7 +37,6 @@ class TicketService {
     return null;
   }
 
-  // New method to fetch tickets from API
   static Future<List<Ticket>> fetchTicketsFromApi() async {
     debugPrint('Fetching tickets from API...');
 
@@ -52,7 +47,9 @@ class TicketService {
 
     try {
       var request = http.Request(
-          'GET', Uri.parse('https://tech.skytechiez.co/api/my-tickets'));
+        'GET',
+        Uri.parse('https://tech.skytechiez.co/api/my-tickets'),
+      );
       request.headers.addAll(headers);
 
       debugPrint('Sending request with headers: $headers');
@@ -68,29 +65,40 @@ class TicketService {
 
         if (data['tickets'] != null && data['tickets'] is List) {
           for (var ticketData in data['tickets']) {
-            // Convert API ticket format to our Ticket model
             final ticket = Ticket(
-              id: ticketData['ticket_id'] ?? ticketData['id'].toString(),
-              subject: ticketData['subject'] ?? 'No Subject',
-              category: ticketData['category_id'] ?? 'General',
-              technicalSupportType: ticketData['category_sub_id'],
-              priority: ticketData['priority'] ?? 'Medium',
-              description: ticketData['description'] ?? 'No description',
-              status: ticketData['status'] ?? 'Pending',
+              id: (ticketData['ticket_id'] ?? ticketData['id']).toString(),
+              subject: ticketData['subject']?.toString() ?? 'No Subject',
+              categoryId: ticketData['category_id']?.toString() ?? '0',
+              subcategoryId: ticketData['category_sub_id']?.toString(),
+              categoryName:
+                  ticketData['category_name']?.toString() ?? 'General',
+              subcategoryName: ticketData['subcategory_name']?.toString(),
+              priority: ticketData['priority']?.toString() ?? 'Medium',
+              description:
+                  ticketData['description']?.toString() ?? 'No description',
+              status: ticketData['status']?.toString() ?? 'Pending',
               date: _formatDate(ticketData['created_at']),
             );
 
-            apiTickets.add(ticket);
-
-            // Update local cache if this ticket doesn't exist locally
-            bool exists = false;
-            for (var localTicket in _tickets) {
-              if (localTicket.id == ticket.id) {
-                exists = true;
-                break;
+            // Enhanced logging for subcategory
+            debugPrint('Created ticket with ID: ${ticket.id}');
+            debugPrint('  Subject: ${ticket.subject}');
+            debugPrint('  Category: ${ticket.categoryName}');
+            if (ticket.subcategoryName != null) {
+              debugPrint('  Subcategory: ${ticket.subcategoryName}');
+            } else {
+              debugPrint('  No subcategory name');
+              // Check if subcategory data exists in the raw response
+              if (ticketData['category_sub_id'] != null) {
+                debugPrint(
+                    '  Has subcategory ID: ${ticketData['category_sub_id']} but no name');
               }
             }
 
+            apiTickets.add(ticket);
+
+            bool exists =
+                _tickets.any((localTicket) => localTicket.id == ticket.id);
             if (!exists) {
               _tickets.add(ticket);
             }
@@ -109,7 +117,6 @@ class TicketService {
     }
   }
 
-  // New method to update ticket status
   static Future<bool> updateTicketStatus(
       String ticketId, String newStatus) async {
     debugPrint('Updating ticket $ticketId to status: $newStatus');
@@ -122,15 +129,16 @@ class TicketService {
     };
 
     try {
-      // First update locally
       bool locallyUpdated = false;
       for (int i = 0; i < _tickets.length; i++) {
         if (_tickets[i].id == ticketId) {
           _tickets[i] = Ticket(
             id: _tickets[i].id,
             subject: _tickets[i].subject,
-            category: _tickets[i].category,
-            technicalSupportType: _tickets[i].technicalSupportType,
+            categoryId: _tickets[i].categoryId,
+            subcategoryId: _tickets[i].subcategoryId,
+            categoryName: _tickets[i].categoryName,
+            subcategoryName: _tickets[i].subcategoryName,
             priority: _tickets[i].priority,
             description: _tickets[i].description,
             status: newStatus,
@@ -141,7 +149,6 @@ class TicketService {
         }
       }
 
-      // Then try to update on the server
       var request = http.Request(
         'PUT',
         Uri.parse(
@@ -165,7 +172,6 @@ class TicketService {
       } else {
         debugPrint(
             'Failed to update ticket on server: ${response.reasonPhrase}');
-        // Return true if at least locally updated
         return locallyUpdated;
       }
     } catch (e) {
@@ -174,12 +180,10 @@ class TicketService {
     }
   }
 
-  // New method to close a ticket
   static Future<bool> closeTicket(String ticketId) async {
     return await updateTicketStatus(ticketId, 'Completed');
   }
 
-  // Helper method to format date from API
   static String _formatDate(String? apiDate) {
     if (apiDate == null) return 'N/A';
 
@@ -210,7 +214,6 @@ class TicketService {
     return months[month - 1];
   }
 
-  // Clear all tickets (for testing)
   static void clearTickets() {
     _tickets.clear();
   }

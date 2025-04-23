@@ -13,6 +13,9 @@ import 'package:sky_techiez/screens/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/terms_conditions_screen.dart';
 import 'package:sky_techiez/screens/ticket_status_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
+import 'package:sky_techiez/services/notification_service.dart';
+import 'package:sky_techiez/models/notification_model.dart';
+import 'package:sky_techiez/widgets/notifications_drawer.dart';
 
 import '../widgets/session_string.dart';
 import 'home_content.dart';
@@ -26,11 +29,68 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   UserLogin userDetail = UserLogin();
+  List<NotificationModel> notifications = [];
+  bool isLoadingNotifications = false;
+  int unreadCount = 0;
+  int specialUnreadCount = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     userDetail = UserLogin.fromJson(GetStorage().read(userCollectionName));
     super.initState();
+    // Fetch notifications when the screen loads
+    _fetchNotifications();
+  }
+
+  Future<void> _fetchNotifications() async {
+    setState(() {
+      isLoadingNotifications = true;
+    });
+
+    try {
+      final response = await NotificationService.getNotifications();
+      if (response['notifications'] != null) {
+        setState(() {
+          notifications = List<NotificationModel>.from(response['notifications']
+              .map((n) => NotificationModel.fromJson(n)));
+          unreadCount = notifications.where((n) => !n.isRead).length;
+          specialUnreadCount =
+              notifications.where((n) => n.isSpecial && !n.isRead).length;
+        });
+      }
+    } catch (e) {
+      print('Error fetching notifications: $e');
+    } finally {
+      setState(() {
+        isLoadingNotifications = false;
+      });
+    }
+  }
+
+  Future<void> _markAsRead(int notificationId) async {
+    final success = await NotificationService.markAsRead(notificationId);
+    if (success) {
+      setState(() {
+        final index = notifications.indexWhere((n) => n.id == notificationId);
+        if (index != -1) {
+          notifications[index].isRead = true;
+          unreadCount = notifications.where((n) => !n.isRead).length;
+          specialUnreadCount =
+              notifications.where((n) => n.isSpecial && !n.isRead).length;
+        }
+      });
+    }
+  }
+
+  void _openNotificationsDrawer() {
+    // Close the main drawer if it's open
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      Navigator.pop(context);
+    }
+
+    // Open the notifications drawer from the right
+    _scaffoldKey.currentState?.openEndDrawer();
   }
 
   int _selectedIndex = 0;
@@ -47,15 +107,47 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     Get.put(AuthController());
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: const Text('Home', style: TextStyle(color: Colors.white)),
         backgroundColor: AppColors.primaryBlue,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: _openNotificationsDrawer,
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: specialUnreadCount > 0 ? Colors.amber : Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      unreadCount > 9 ? '9+' : '$unreadCount',
+                      style: TextStyle(
+                        color: specialUnreadCount > 0
+                            ? Colors.black
+                            : Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -86,8 +178,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Obx(() {
-                        //   return
                         Row(
                           children: [
                             Container(
@@ -125,14 +215,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
-                                maxLines: 2, // or null for unlimited lines
-                                overflow: TextOverflow.visible, // optional
+                                maxLines: 2,
+                                overflow: TextOverflow.visible,
                                 softWrap: true,
                               ),
                             ),
                           ],
                         ),
-                        // }),
                         const SizedBox(height: 10),
                         Center(
                           child: Image.asset(
@@ -264,6 +353,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
+      endDrawer: NotificationsDrawer(
+        notifications: notifications,
+        onMarkAsRead: _markAsRead,
+        onRefresh: _fetchNotifications,
+        isLoading: isLoadingNotifications,
       ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: _buildBottomNavBar(),

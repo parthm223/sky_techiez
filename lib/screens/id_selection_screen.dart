@@ -4,7 +4,7 @@ import 'drivers_license_capture_screen.dart';
 import 'government_id_capture_screen.dart';
 
 class DocumentSelectionScreen extends StatelessWidget {
-  const DocumentSelectionScreen({Key? key}) : super(key: key);
+  const DocumentSelectionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

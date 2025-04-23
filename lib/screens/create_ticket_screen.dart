@@ -24,7 +24,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   final _formKey = GlobalKey<FormState>();
   final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String _selectedCategory = 'Technical Support';
+  String _selectedCategory = 'Other';
   String? _selectedTechnicalSupportType;
   String _selectedPriority = 'Medium';
   Map<String, String> _categoriesMap = {};
@@ -52,7 +52,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     try {
       var request = http.MultipartRequest(
         'GET',
-        Uri.parse('https://tech.skytechiez.co/api/issue-type-dropdown'),
+        Uri.parse('https://tech.skytechiez.co/api/ticket-category-dropdown'),
       );
 
       request.headers.addAll(headers);
@@ -67,29 +67,32 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         final data = json.decode(responseBody);
 
         setState(() {
-          _categoriesMap = Map<String, String>.from(data['issue_types']);
+          _categoriesMap = Map<String, String>.from(data['ticket_categories']);
           _categories = _categoriesMap.values.toList();
           _selectedCategory = _categories.isNotEmpty ? _categories.first : '';
           _isLoadingCategories = false;
 
-          // Find the ID for the selected category
           String? selectedCategoryId = _getCategoryIdByName(_selectedCategory);
           print('Selected category ID: $selectedCategoryId');
 
-          // If the selected category has key "1", fetch subcategories
-          if (selectedCategoryId == '1') {
-            _fetchSubcategories(selectedCategoryId!);
+          if (selectedCategoryId != null) {
+            _fetchSubcategories(selectedCategoryId);
           }
         });
       } else {
         print('Categories request failed: ${response.reasonPhrase}');
         setState(() {
           _isLoadingCategories = false;
-          _categories = ['Technical Support', 'Account Management']; // Fallback
-          _selectedCategory = 'Technical Support';
+          _categories = [
+            'Other',
+            'Account Related Issue',
+            'Billing Related Issue'
+          ];
+          _selectedCategory = 'Other';
           _categoriesMap = {
-            '1': 'Technical Support',
-            '2': 'Account Management',
+            '4': 'Other',
+            '6': 'Account Related Issue',
+            '7': 'Billing Related Issue',
           };
         });
       }
@@ -97,11 +100,16 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       print('Error fetching categories: $e');
       setState(() {
         _isLoadingCategories = false;
-        _categories = ['Technical Support', 'Account Management']; // Fallback
-        _selectedCategory = 'Technical Support';
+        _categories = [
+          'Other',
+          'Account Related Issue',
+          'Billing Related Issue'
+        ];
+        _selectedCategory = 'Other';
         _categoriesMap = {
-          '1': 'Technical Support',
-          '2': 'Account Management',
+          '4': 'Other',
+          '6': 'Account Related Issue',
+          '7': 'Billing Related Issue',
         };
       });
     }
@@ -205,6 +213,18 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
 
   Future<void> _createTicket() async {
     if (_formKey.currentState!.validate()) {
+      // Validate technical support type is selected when subcategories exist
+      if (_subcategoriesMap.isNotEmpty &&
+          _selectedTechnicalSupportType == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a support type'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       print('Form validated, creating ticket...');
       setState(() {
         _isSubmitting = true;
@@ -212,7 +232,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
 
       try {
         // Get category ID
-        String categoryId = _getCategoryIdByName(_selectedCategory) ?? '1';
+        String? categoryId = _getCategoryIdByName(_selectedCategory);
+        categoryId ??= '4'; // Default to 'Other' if not found
         print('Category ID for $_selectedCategory: $categoryId');
 
         var headers = {
@@ -232,14 +253,15 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
           'description': _descriptionController.text,
           'category_id': categoryId,
           'priority': _selectedPriority,
+          'category_name': _selectedCategory,
         };
 
-        // Only add subcategory_id if the category is "Technical Support" (key "1")
-        if (categoryId == '1' &&
-            _selectedTechnicalSupportType != null &&
-            _subcategoriesMap.isNotEmpty) {
-          fields['subcategory_id'] =
-              _getSubcategoryIdByName(_selectedTechnicalSupportType!) ?? '';
+        // Add subcategory if available
+        if (_selectedTechnicalSupportType != null) {
+          String? subcategoryId =
+              _getSubcategoryIdByName(_selectedTechnicalSupportType!);
+          fields['subcategory_id'] = subcategoryId ?? '';
+          fields['subcategory_name'] = _selectedTechnicalSupportType!;
         }
 
         request.fields.addAll(fields);
@@ -268,16 +290,20 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         if (response.statusCode == 200 || response.statusCode == 201) {
           json.decode(responseBody);
 
-          // Create local ticket
+          // Create local ticket with proper null handling
           final newTicket = Ticket(
             id: _generateTicketId(),
             subject: _subjectController.text,
-            category: _selectedCategory,
-            technicalSupportType: _selectedTechnicalSupportType,
+            categoryName: _selectedCategory,
+            subcategoryName: _selectedTechnicalSupportType,
             priority: _selectedPriority,
             description: _descriptionController.text,
             status: 'New',
             date: DateFormat('MMM dd, yyyy').format(DateTime.now()),
+            categoryId: categoryId,
+            subcategoryId: _selectedTechnicalSupportType != null
+                ? _getSubcategoryIdByName(_selectedTechnicalSupportType!)
+                : null,
           );
 
           TicketService.addTicket(newTicket);
@@ -431,13 +457,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                                     String? categoryId =
                                         _getCategoryIdByName(newValue);
                                     if (categoryId != null) {
-                                      // Only fetch subcategories if the category key is "1"
-                                      if (categoryId == '1') {
-                                        _fetchSubcategories(categoryId);
-                                      } else {
-                                        // Clear subcategory selection for other categories
-                                        _selectedTechnicalSupportType = null;
-                                      }
+                                      _fetchSubcategories(categoryId);
+                                    } else {
+                                      _selectedTechnicalSupportType = null;
                                     }
                                   });
                                 }
@@ -447,14 +469,13 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                   ),
                 ],
               ),
-              // Only show subcategory dropdown if the selected category has key "1"
-              if (_getCategoryIdByName(_selectedCategory) == '1') ...[
+              if (_subcategoriesMap.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Technical Support Type',
+                      'Support Type',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -486,8 +507,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                                 }).toList(),
                                 onChanged: (String? newValue) {
                                   if (newValue != null) {
-                                    print(
-                                        'Technical Support Type changed to: $newValue');
+                                    print('Support Type changed to: $newValue');
                                     setState(() {
                                       _selectedTechnicalSupportType = newValue;
                                     });

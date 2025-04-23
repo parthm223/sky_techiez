@@ -5,9 +5,9 @@ class DocumentCaptureScreen extends StatefulWidget {
   final String idType;
 
   const DocumentCaptureScreen({
-    Key? key,
+    super.key,
     required this.idType,
-  }) : super(key: key);
+  });
 
   @override
   State<DocumentCaptureScreen> createState() => _DocumentCaptureScreenState();
@@ -351,11 +351,11 @@ class DocumentReviewScreen extends StatelessWidget {
   final File? backImage;
 
   const DocumentReviewScreen({
-    Key? key,
+    super.key,
     required this.idType,
     required this.frontImage,
     this.backImage,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
