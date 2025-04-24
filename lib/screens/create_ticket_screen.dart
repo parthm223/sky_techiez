@@ -260,8 +260,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         if (_selectedTechnicalSupportType != null) {
           String? subcategoryId =
               _getSubcategoryIdByName(_selectedTechnicalSupportType!);
-          fields['subcategory_id'] = subcategoryId ?? '';
-          fields['subcategory_name'] = _selectedTechnicalSupportType!;
+          fields['category_sub_id'] = subcategoryId ?? '';
+          // fields['sub_category_name'] = _selectedTechnicalSupportType!;
         }
 
         request.fields.addAll(fields);
@@ -292,7 +292,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
 
           // Create local ticket with proper null handling
           final newTicket = Ticket(
-            id: _generateTicketId(),
+            id: null,
+            ticketId: _generateTicketId(),
             subject: _subjectController.text,
             categoryName: _selectedCategory,
             subcategoryName: _selectedTechnicalSupportType,

@@ -46,6 +46,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
     if (appointmentData != null) {
       setState(() {
         _latestAppointment = appointmentData;
+        print("_latestAppointment ====================> ${_latestAppointment}");
       });
     }
   }
@@ -150,7 +151,8 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                           children: [
                             _buildTicketCard(
                               context,
-                              ticket.id,
+                              ticket.id ?? 0,
+                              ticket.ticketId,
                               ticket.subject,
                               ticket.status,
                               ticket.date,
@@ -172,6 +174,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                       const SizedBox(height: 16),
                       _buildTicketCard(
                         context,
+                        0,
                         'TKT-2023-001',
                         'Technical Issue with Login',
                         'In Progress',
@@ -180,29 +183,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                         'Your ticket is being reviewed by our technical team.',
                         _latestAppointment ==
                             null, // Only active if no appointment
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTicketCard(
-                        context,
-                        'TKT-2023-002',
-                        'Billing Inquiry',
-                        'Pending',
-                        'Mar 18, 2023',
-                        'Medium',
-                        'Waiting for additional information from you.',
-                        false,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTicketCard(
-                        context,
-                        'TKT-2023-003',
-                        'Feature Request',
-                        'Completed',
-                        'Mar 10, 2023',
-                        'Low',
-                        'Your request has been implemented in the latest update.',
-                        false,
-                        isCompleted: true,
                       ),
                     ],
 
@@ -453,6 +433,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
 
   Widget _buildTicketCard(
     BuildContext context,
+    int id,
     String ticketId,
     String subject,
     String status,

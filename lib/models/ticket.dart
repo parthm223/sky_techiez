@@ -1,5 +1,6 @@
 class Ticket {
-  final String id;
+  int? id;
+  final String ticketId;
   final String subject;
   final String categoryId;
   final String? subcategoryId;
@@ -11,7 +12,8 @@ class Ticket {
   final String date;
 
   Ticket({
-    required this.id,
+    this.id,
+    required this.ticketId,
     required this.subject,
     required this.categoryId,
     this.subcategoryId,
@@ -25,12 +27,13 @@ class Ticket {
 
   factory Ticket.fromMap(Map<String, dynamic> map) {
     return Ticket(
-      id: (map['ticket_id'] ?? map['id']).toString(),
+      id: (map['id']),
+      ticketId: (map['ticket_id']).toString(),
       subject: map['subject']?.toString() ?? 'No Subject',
       categoryId: map['category_id']?.toString() ?? '0',
       subcategoryId: map['category_sub_id']?.toString(),
       categoryName: map['category_name']?.toString() ?? 'General',
-      subcategoryName: map['subcategory_name']?.toString(),
+      subcategoryName: map['sub_category_name']?.toString(),
       priority: map['priority']?.toString() ?? 'Medium',
       description: map['description']?.toString() ?? 'No description',
       status: map['status']?.toString() ?? 'Pending',
@@ -42,11 +45,12 @@ class Ticket {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'ticket_id': ticketId,
       'subject': subject,
       'category_id': categoryId,
       'category_sub_id': subcategoryId,
       'category_name': categoryName,
-      'subcategory_name': subcategoryName,
+      'sub_category_name': subcategoryName,
       'priority': priority,
       'description': description,
       'status': status,

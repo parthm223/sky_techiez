@@ -45,6 +45,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     // If we only have a ticket ID, fetch the full ticket data
     if (widget.ticketData.containsKey('id') && widget.ticketData.length < 5) {
       _fetchTicketDetails(widget.ticketData['id']);
+      print(
+          'njhebnvaebvfubrsbvbnjueb>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>${widget.ticketData['id']}');
     }
   }
 
@@ -62,9 +64,9 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
           _isLoading = false;
 
           // Debug logging for subcategory
-          if (widget.ticketData['subcategory_name'] != null) {
+          if (widget.ticketData['sub_category_name'] != null) {
             print(
-                'Ticket details has subcategory: ${widget.ticketData['subcategory_name']}');
+                'Ticket details has subcategory: ${widget.ticketData['sub_category_name']}');
           } else {
             print('Ticket details has no subcategory name');
           }
@@ -97,7 +99,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     try {
       final comments =
           await CommentService.getComments(widget.ticketData['id'].toString());
-
+      print(
+          '${widget.ticketData}>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
       if (mounted) {
         setState(() {
           _comments = comments;
@@ -581,7 +584,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Ticket ${widget.ticketData['id'] ?? ''}',
+                    'Ticket ${widget.ticketData['ticket_id'] ?? ''}',
                     style: const TextStyle(
                       color: AppColors.primaryBlue,
                       fontSize: 16,
@@ -598,10 +601,10 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                   widget.ticketData['category_name'] ??
                       widget.ticketData['category'] ??
                       'General Support'),
-              if (widget.ticketData['subcategory_name'] != null)
+              if (widget.ticketData['sub_category_name'] != null)
                 _buildInfoRow(
-                    'Subcategory', widget.ticketData['subcategory_name']),
-              if (widget.ticketData['subcategory_name'] == null &&
+                    'Subcategory', widget.ticketData['sub_category_name']),
+              if (widget.ticketData['sub_category_name'] == null &&
                   widget.ticketData['technicalSupportType'] != null)
                 _buildInfoRow('Technical Support Type',
                     widget.ticketData['technicalSupportType']),

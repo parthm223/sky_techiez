@@ -66,7 +66,8 @@ class TicketService {
         if (data['tickets'] != null && data['tickets'] is List) {
           for (var ticketData in data['tickets']) {
             final ticket = Ticket(
-              id: (ticketData['ticket_id'] ?? ticketData['id']).toString(),
+              id: (ticketData['id']),
+              ticketId: (ticketData['ticket_id']).toString(),
               subject: ticketData['subject']?.toString() ?? 'No Subject',
               categoryId: ticketData['category_id']?.toString() ?? '0',
               subcategoryId: ticketData['category_sub_id']?.toString(),
@@ -134,6 +135,7 @@ class TicketService {
         if (_tickets[i].id == ticketId) {
           _tickets[i] = Ticket(
             id: _tickets[i].id,
+            ticketId: _tickets[i].ticketId,
             subject: _tickets[i].subject,
             categoryId: _tickets[i].categoryId,
             subcategoryId: _tickets[i].subcategoryId,

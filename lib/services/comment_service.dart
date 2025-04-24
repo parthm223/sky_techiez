@@ -8,10 +8,11 @@ class CommentService {
   static const String _baseUrl = 'https://tech.skytechiez.co/api';
 
   // Get comments for a ticket
-  static Future<List<Map<String, dynamic>>> getComments(String ticketId) async {
+  static Future<List<Map<String, dynamic>>> getComments(String id) async {
+    print("comment page ticket main Id => ${id}");
     final token = _storage.read(tokenKey)?.toString() ?? '';
     print('\n=== GET COMMENTS REQUEST ===');
-    print('Ticket ID: $ticketId');
+    print('Ticket ID: $id');
     print(
         'Token: ${token.isNotEmpty ? '*****${token.substring(token.length - 5)}' : 'EMPTY'}');
 
@@ -24,7 +25,7 @@ class CommentService {
       // Create request with proper headers
       var request = http.Request(
         'GET',
-        Uri.parse('$_baseUrl/get-comments/1'),
+        Uri.parse('$_baseUrl/get-comments/${id}'),
       );
 
       request.headers.addAll({
@@ -105,7 +106,7 @@ class CommentService {
       // Create multipart request
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$_baseUrl/add-comment/1'),
+        Uri.parse('$_baseUrl/add-comment/${ticketId}'),
       );
 
       // Add headers and fields
