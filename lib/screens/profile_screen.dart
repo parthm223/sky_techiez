@@ -113,8 +113,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _buildProfileItem(
                                 'Phone:', userDetail?.phone ?? 'N/A'),
                             _buildProfileItem('DOB:', userDetail?.dob ?? 'N/A'),
-                            // _buildProfileItem(
-                            //     'ID:', userDetail?.id?.toString() ?? 'N/A'),
+                            _buildProfileItem(
+                                'ID:', userDetail?.id?.toString() ?? 'N/A'),
                             // _buildProfileItem(
                             //     'Account ID:', userDetail?.accountId ?? 'N/A'),
                             const SizedBox(height: 8),

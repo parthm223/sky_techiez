@@ -3,6 +3,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/services/ticket_service.dart';
 import 'package:sky_techiez/services/comment_service.dart';
+import 'package:sky_techiez/widgets/session_string.dart';
 
 class TicketDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> ticketData;
@@ -518,21 +519,30 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                                           );
                                         }
                                         final comment = _comments[index - 1];
-                                        final isUserComment = comment['user_id']
+                                        final isUserComment = GetStorage()
+                                                .read(userCollectionName)["id"]
                                                 .toString() ==
-                                            (GetStorage().read('user_id') ?? '')
-                                                .toString();
-
+                                            comment['user_id'].toString();
                                         return Padding(
                                           padding:
                                               const EdgeInsets.only(top: 16),
-                                          child: _buildChatBubble(
-                                            isUserComment
-                                                ? 'You'
-                                                : 'Support Team',
-                                            comment['comment'] ?? '',
-                                            isUserComment: isUserComment,
-                                            timestamp: comment['created_at'],
+                                          child: Align(
+                                            alignment: GetStorage()
+                                                        .read(userCollectionName)[
+                                                            "id"]
+                                                        .toString() ==
+                                                    comment['user_id']
+                                                        .toString()
+                                                ? Alignment.centerLeft
+                                                : Alignment.centerRight,
+                                            child: _buildChatBubble(
+                                              isUserComment
+                                                  ? 'You'
+                                                  : 'Support Team',
+                                              comment['comment'] ?? '',
+                                              isUserComment: isUserComment,
+                                              timestamp: comment['created_at'],
+                                            ),
                                           ),
                                         );
                                       },
@@ -753,7 +763,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     );
   }
 
-  // New chat bubble implementation
+  // Modified chat bubble implementation - swapped alignment
   Widget _buildChatBubble(String author, String content,
       {required bool isUserComment, String? timestamp}) {
     // Format timestamp if available
@@ -780,18 +790,19 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
       }
     }
 
+    // MODIFIED: Swapped alignment - user comments on left, support team on right
     return Row(
       mainAxisAlignment:
           isUserComment ? MainAxisAlignment.end : MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!isUserComment) ...[
+        if (isUserComment) ...[
           CircleAvatar(
-            backgroundColor: AppColors.primaryBlue,
+            backgroundColor: AppColors.white,
             radius: 16,
             child: const Icon(
-              Icons.support_agent,
-              color: AppColors.white,
+              Icons.person,
+              color: AppColors.cardBackground,
               size: 16,
             ),
           ),
@@ -800,8 +811,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
         Flexible(
           child: Column(
             crossAxisAlignment: isUserComment
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.end,
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
@@ -812,8 +823,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
-                    bottomLeft: Radius.circular(isUserComment ? 16 : 4),
-                    bottomRight: Radius.circular(isUserComment ? 4 : 16),
+                    bottomLeft: Radius.circular(isUserComment ? 4 : 16),
+                    bottomRight: Radius.circular(isUserComment ? 16 : 4),
                   ),
                   border: Border.all(
                     color: isUserComment
@@ -862,14 +873,14 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
             ],
           ),
         ),
-        if (isUserComment) ...[
+        if (!isUserComment) ...[
           const SizedBox(width: 8),
           CircleAvatar(
-            backgroundColor: AppColors.white,
+            backgroundColor: AppColors.primaryBlue,
             radius: 16,
             child: const Icon(
-              Icons.person,
-              color: AppColors.cardBackground,
+              Icons.support_agent,
+              color: AppColors.white,
               size: 16,
             ),
           ),

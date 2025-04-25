@@ -12,6 +12,12 @@ class AppColors {
   static const Color grey = Color(0xFF666666);
   static const Color lightGrey = Color(0xFF1E1E1E);
   static const Color cardBackground = Color(0xFF1A1A1A);
+
+  // Add these for chat bubbles
+  static const Color userMessageBackground = Color(0xFF3366FF); // Primary blue
+  static const Color supportMessageBackground = Color(0xFF333333); // Dark grey
+  static const Color systemMessageBackground =
+      Color(0xFF444444); // Slightly lighter grey
 }
 
 class AppTheme {

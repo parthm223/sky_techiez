@@ -585,8 +585,8 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {},
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Update'),
+                        icon: const Icon(Icons.done),
+                        label: const Text('View Details'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primaryBlue,
                         ),
@@ -607,9 +607,8 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                               var request = http.MultipartRequest(
                                   'POST',
                                   Uri.parse(
-                                      'https://tech.skytechiez.co/api/close-ticket/$ticketId'));
+                                      'https://tech.skytechiez.co/api/close-ticket/$id'));
                               request.headers.addAll(headers);
-
                               http.StreamedResponse response =
                                   await request.send();
 
