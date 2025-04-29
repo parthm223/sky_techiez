@@ -66,21 +66,26 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         print('Categories response body: $responseBody');
         final data = json.decode(responseBody);
 
+        if (!mounted) return; // Check if widget is still mounted
+
         setState(() {
           _categoriesMap = Map<String, String>.from(data['ticket_categories']);
           _categories = _categoriesMap.values.toList();
           _selectedCategory = _categories.isNotEmpty ? _categories.first : '';
           _isLoadingCategories = false;
-
-          String? selectedCategoryId = _getCategoryIdByName(_selectedCategory);
-          print('Selected category ID: $selectedCategoryId');
-
-          if (selectedCategoryId != null) {
-            _fetchSubcategories(selectedCategoryId);
-          }
         });
+
+        String? selectedCategoryId = _getCategoryIdByName(_selectedCategory);
+        print('Selected category ID: $selectedCategoryId');
+
+        if (selectedCategoryId != null && mounted) {
+          _fetchSubcategories(selectedCategoryId);
+        }
       } else {
         print('Categories request failed: ${response.reasonPhrase}');
+
+        if (!mounted) return; // Check if widget is still mounted
+
         setState(() {
           _isLoadingCategories = false;
           _categories = [
@@ -98,6 +103,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       }
     } catch (e) {
       print('Error fetching categories: $e');
+
+      if (!mounted) return; // Check if widget is still mounted
+
       setState(() {
         _isLoadingCategories = false;
         _categories = [
@@ -117,6 +125,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
 
   Future<void> _fetchSubcategories(String categoryId) async {
     print('Fetching subcategories for category ID: $categoryId');
+
+    if (!mounted) return; // Check if widget is still mounted
+
     setState(() {
       _isLoadingSubcategories = true;
       _selectedTechnicalSupportType = null;
@@ -145,6 +156,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         print('Subcategories response body: $responseBody');
         final data = json.decode(responseBody);
 
+        if (!mounted) return; // Check if widget is still mounted
+
         setState(() {
           _subcategoriesMap = Map<String, String>.from(data['subcategories']);
           _isLoadingSubcategories = false;
@@ -155,12 +168,18 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         });
       } else {
         print('Subcategories request failed: ${response.reasonPhrase}');
+
+        if (!mounted) return; // Check if widget is still mounted
+
         setState(() {
           _isLoadingSubcategories = false;
         });
       }
     } catch (e) {
       print('Error fetching subcategories: $e');
+
+      if (!mounted) return; // Check if widget is still mounted
+
       setState(() {
         _isLoadingSubcategories = false;
       });
@@ -194,6 +213,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
           await _picker.pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
         print('Selected image: ${pickedFile.path}');
+
+        if (!mounted) return; // Check if widget is still mounted
+
         setState(() {
           _attachment = File(pickedFile.path);
         });
@@ -202,6 +224,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       }
     } catch (e) {
       print('Image picker error: $e');
+
+      if (!mounted) return; // Check if widget is still mounted
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to pick image: $e'),
@@ -226,6 +251,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       }
 
       print('Form validated, creating ticket...');
+
+      if (!mounted) return; // Check if widget is still mounted
+
       setState(() {
         _isSubmitting = true;
       });
@@ -287,6 +315,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         final responseBody = await response.stream.bytesToString();
         print('Ticket creation response: $responseBody');
 
+        if (!mounted) return; // Check if widget is still mounted
+
         if (response.statusCode == 200 || response.statusCode == 201) {
           json.decode(responseBody);
 
@@ -317,7 +347,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
             ),
           );
 
-          if (!mounted) return;
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -325,8 +354,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
             ),
           );
         } else {
-          if (!mounted) return;
-
           String errorMessage = 'Failed to create ticket';
           try {
             final errorData = json.decode(responseBody);
@@ -348,7 +375,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         }
       } catch (e) {
         print('Ticket creation exception: $e');
-        if (!mounted) return;
+
+        if (!mounted) return; // Check if widget is still mounted
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),

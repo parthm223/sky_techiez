@@ -16,6 +16,8 @@ import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/services/notification_service.dart';
 import 'package:sky_techiez/models/notification_model.dart';
 import 'package:sky_techiez/widgets/notifications_drawer.dart';
+import 'package:sky_techiez/screens/owen_agreement_screen.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../widgets/session_string.dart';
 import 'home_content.dart';
@@ -96,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
-    const HomeContent(),
+    HomeContent(),
     const ProfileScreen(),
     const SubscriptionsScreen(),
     const ServicesScreen(),
@@ -321,6 +323,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Terms & Conditions',
                     onTap: () =>
                         _navigateTo(context, const TermsConditionsScreen()),
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.gavel_outlined,
+                    title: 'Owen Agreement',
+                    onTap: () =>
+                        _navigateTo(context, SkyTechiezAgreementScreen()),
                   ),
                 ],
               ),

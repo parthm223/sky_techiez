@@ -113,10 +113,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _buildProfileItem(
                                 'Phone:', userDetail?.phone ?? 'N/A'),
                             _buildProfileItem('DOB:', userDetail?.dob ?? 'N/A'),
-                            _buildProfileItem(
-                                'ID:', userDetail?.id?.toString() ?? 'N/A'),
                             // _buildProfileItem(
-                            //     'Account ID:', userDetail?.accountId ?? 'N/A'),
+                            //     'ID:', userDetail?.id?.toString() ?? 'N/A'),
+                            _buildProfileItem(
+                                'Account ID:', userDetail?.accountId ?? 'N/A'),
                             const SizedBox(height: 8),
                             const Divider(color: AppColors.grey),
                             const SizedBox(height: 8),
@@ -199,17 +199,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  CustomButton(
-                    text: 'ID Verify',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DocumentSelectionScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  // CustomButton(
+                  //   text: 'ID Verify',
+                  //   onPressed: () {
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) => const DocumentSelectionScreen(),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                 ],
               ),
             ),

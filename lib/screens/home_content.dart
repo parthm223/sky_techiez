@@ -7,7 +7,7 @@ import 'package:sky_techiez/screens/create_ticket_screen.dart';
 import 'package:sky_techiez/screens/services_screen.dart';
 import 'package:sky_techiez/screens/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_details_screen.dart';
-
+import 'package:sky_techiez/services/comment_service.dart';
 import 'package:sky_techiez/services/subscription_service.dart';
 import 'package:sky_techiez/services/ticket_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
@@ -39,6 +39,8 @@ class _HomeContentState extends State<HomeContent> {
 
   Future<void> _fetchSettings() async {
     print('Starting to fetch settings...');
+    if (!mounted) return;
+
     setState(() {
       _isLoadingTollFreeNumber = true;
     });
@@ -59,9 +61,13 @@ class _HomeContentState extends State<HomeContent> {
       http.StreamedResponse response = await request.send();
       print('Response status code: ${response.statusCode}');
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         String responseBody = await response.stream.bytesToString();
         print('Raw API response: $responseBody');
+
+        if (!mounted) return;
 
         Map<String, dynamic> data = json.decode(responseBody);
         print('Parsed response data: $data');
@@ -79,38 +85,38 @@ class _HomeContentState extends State<HomeContent> {
 
         print('Extracted toll-free number: $extractedNumber');
 
-        if (mounted) {
-          setState(() {
-            _tollFreeNumber = extractedNumber;
-            print('Toll-free number set to: $_tollFreeNumber');
-          });
-        }
+        if (!mounted) return;
+
+        setState(() {
+          _tollFreeNumber = extractedNumber;
+          print('Toll-free number set to: $_tollFreeNumber');
+        });
       } else {
         print('API request failed with status: ${response.statusCode}');
         print('Reason: ${response.reasonPhrase}');
 
-        if (mounted) {
-          setState(() {
-            _tollFreeNumber = '1-800-123-4567';
-            print('Using default toll-free number');
-          });
-        }
+        if (!mounted) return;
+
+        setState(() {
+          _tollFreeNumber = '1-800-123-4567';
+          print('Using default toll-free number');
+        });
       }
     } catch (e) {
       print('Error in _fetchSettings: $e');
-      if (mounted) {
-        setState(() {
-          _tollFreeNumber = '1-800-123-4567';
-          print('Using default toll-free number due to error');
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _tollFreeNumber = '1-800-123-4567';
+        print('Using default toll-free number due to error');
+      });
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingTollFreeNumber = false;
-          print('Finished loading toll-free number');
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingTollFreeNumber = false;
+        print('Finished loading toll-free number');
+      });
     }
   }
 
@@ -122,21 +128,25 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   Future<void> _checkSubscriptionStatus() async {
+    if (!mounted) return;
+
     setState(() {
       _isCheckingSubscription = true;
     });
 
     final hasSubscription = await SubscriptionService.hasActiveSubscription();
 
-    if (mounted) {
-      setState(() {
-        _hasSubscription = hasSubscription;
-        _isCheckingSubscription = false;
-      });
-    }
+    if (!mounted) return;
+
+    setState(() {
+      _hasSubscription = hasSubscription;
+      _isCheckingSubscription = false;
+    });
   }
 
-  void _loadLatestTicket() async {
+  Future<void> _loadLatestTicket() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoadingTicket = true;
     });
@@ -145,37 +155,219 @@ class _HomeContentState extends State<HomeContent> {
       // First try to fetch from API
       final apiTickets = await TicketService.fetchTicketsFromApi();
 
+      if (!mounted) return;
+
       // Get local tickets as fallback
       final localTickets = TicketService.getAllTickets();
 
-      if (mounted) {
-        setState(() {
-          // Use API tickets if available, otherwise use local tickets
-          final allTickets = apiTickets.isNotEmpty ? apiTickets : localTickets;
+      setState(() {
+        // Use API tickets if available, otherwise use local tickets
+        final allTickets = apiTickets.isNotEmpty ? apiTickets : localTickets;
 
-          // Get the most recent ticket (assuming the first one is the latest)
-          _latestTicket = allTickets.isNotEmpty ? allTickets.first : null;
-          _isLoadingTicket = false;
-        });
+        // Filter out closed tickets
+        final activeTickets = allTickets.where((ticket) {
+          final status = ticket.status.toLowerCase();
+          return status != 'closed';
+        }).toList();
 
-        // Debug logging for subcategory name
-        if (_latestTicket != null && _latestTicket!.subcategoryName != null) {
-          print(
-              'Latest ticket has subcategory: ${_latestTicket!.subcategoryName}');
-        } else if (_latestTicket != null) {
-          print('Latest ticket has no subcategory name');
-        }
+        // Get the most recent active ticket (assuming the first one is the latest)
+        _latestTicket = activeTickets.isNotEmpty ? activeTickets.first : null;
+        _isLoadingTicket = false;
+      });
+
+      // Debug logging for subcategory name
+      if (_latestTicket != null && _latestTicket!.subcategoryName != null) {
+        print(
+            'Latest ticket has subcategory: ${_latestTicket!.subcategoryName}');
+      } else if (_latestTicket != null) {
+        print('Latest ticket has no subcategory name');
       }
     } catch (e) {
       print('Error loading latest ticket: $e');
+      if (!mounted) return;
+
       // Fall back to local tickets if API fails
       final localTickets = TicketService.getAllTickets();
-      if (mounted) {
-        setState(() {
-          _latestTicket = localTickets.isNotEmpty ? localTickets.first : null;
-          _isLoadingTicket = false;
-        });
-      }
+
+      // Filter out closed tickets from local tickets too
+      final activeLocalTickets = localTickets.where((ticket) {
+        final status = ticket.status.toLowerCase();
+        return status != 'closed';
+      }).toList();
+
+      setState(() {
+        _latestTicket =
+            activeLocalTickets.isNotEmpty ? activeLocalTickets.first : null;
+        _isLoadingTicket = false;
+      });
+    }
+  }
+
+  Future<void> _handleCloseTicket() async {
+    if (_latestTicket == null || !mounted) return;
+
+    // Create a text controller for the comment input
+    final TextEditingController commentController = TextEditingController();
+
+    // Show dialog to get comment before closing ticket
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.cardBackground,
+          title: const Text(
+            'Add Closing Comment',
+            style: TextStyle(
+              color: AppColors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Please add a comment before closing this ticket:',
+                style: TextStyle(color: AppColors.grey),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: commentController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Enter your comment here...',
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.black12,
+                  hintStyle: TextStyle(color: AppColors.grey),
+                ),
+                style: const TextStyle(color: AppColors.white),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close dialog
+
+                // Show loading indicator
+                if (!mounted) return;
+
+                setState(() {
+                  _isLoadingTicket = true;
+                });
+
+                try {
+                  // First add the comment if not empty
+                  if (commentController.text.isNotEmpty) {
+                    await CommentService.addComment(
+                        _latestTicket!.id.toString(), commentController.text);
+
+                    if (!mounted) return;
+                  }
+
+                  // Then close the ticket
+                  var headers = {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Authorization':
+                        (GetStorage().read(tokenKey) ?? '').toString(),
+                  };
+                  var request = http.MultipartRequest(
+                      'POST',
+                      Uri.parse(
+                          'https://tech.skytechiez.co/api/close-ticket/${_latestTicket!.id}'));
+                  request.headers.addAll(headers);
+
+                  http.StreamedResponse response = await request.send();
+
+                  if (!mounted) return;
+
+                  if (response.statusCode == 200) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Ticket closed successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    // Reload the latest ticket to reflect the status change
+                    _loadLatestTicket();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Failed to close ticket: ${response.reasonPhrase}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    if (!mounted) return;
+
+                    setState(() {
+                      _isLoadingTicket = false;
+                    });
+                  }
+                } catch (e) {
+                  print('Error processing ticket: $e');
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+
+                  setState(() {
+                    _isLoadingTicket = false;
+                  });
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+              ),
+              child: const Text('Send'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'In Progress':
+        return Colors.blue;
+      case 'Pending':
+        return Colors.orange;
+      case 'Resolved':
+        return Colors.green;
+      case 'New':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'In Progress':
+        return Icons.pending_actions;
+      case 'Pending':
+        return Icons.hourglass_empty;
+      case 'Resolved':
+        return Icons.check_circle;
+      case 'New':
+        return Icons.fiber_new;
+      default:
+        return Icons.info;
     }
   }
 
@@ -288,7 +480,10 @@ class _HomeContentState extends State<HomeContent> {
                                   ticketData: _latestTicket!.toJson(),
                                 ),
                               ),
-                            );
+                            ).then((_) {
+                              // Refresh ticket data when returning from create ticket screen
+                              _loadLatestTicket();
+                            });
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.purple,
@@ -602,89 +797,5 @@ class _HomeContentState extends State<HomeContent> {
         ],
       ),
     );
-  }
-
-  Future<void> _handleCloseTicket() async {
-    if (_latestTicket == null) return;
-
-    setState(() {
-      _isLoadingTicket = true;
-    });
-
-    try {
-      var headers = {
-        'X-Requested-With': 'XMLHttpRequest',
-        'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
-      };
-      var request = http.MultipartRequest(
-          'POST',
-          Uri.parse(
-              'https://tech.skytechiez.co/api/close-ticket/${_latestTicket!.id}'));
-      request.headers.addAll(headers);
-
-      http.StreamedResponse response = await request.send();
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ticket closed successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Reload the latest ticket to reflect the status change
-        _loadLatestTicket();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to close ticket: ${response.reasonPhrase}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isLoadingTicket = false;
-        });
-      }
-    } catch (e) {
-      print('Error closing ticket: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error closing ticket: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() {
-        _isLoadingTicket = false;
-      });
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'In Progress':
-        return Colors.blue;
-      case 'Pending':
-        return Colors.orange;
-      case 'Resolved':
-        return Colors.green;
-      case 'New':
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'In Progress':
-        return Icons.pending_actions;
-      case 'Pending':
-        return Icons.hourglass_empty;
-      case 'Resolved':
-        return Icons.check_circle;
-      case 'New':
-        return Icons.fiber_new;
-      default:
-        return Icons.info;
-    }
   }
 }

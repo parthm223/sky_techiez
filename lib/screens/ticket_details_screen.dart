@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/services/ticket_service.dart';
 import 'package:sky_techiez/services/comment_service.dart';
 import 'package:sky_techiez/widgets/session_string.dart';
+import 'package:http/http.dart' as http;
 
 class TicketDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> ticketData;
@@ -29,6 +31,11 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
   bool _isLoadingComments = false;
   bool _hasCommentError = false;
 
+  // Add ticket progress variables
+  List<String> _ticketProgress = [];
+  bool _isLoadingProgress = false;
+  bool _hasProgressError = false;
+
   @override
   void initState() {
     super.initState();
@@ -36,18 +43,103 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     _tabController.addListener(() {
       setState(() {
         _selectedTabIndex = _tabController.index;
-        // Load comments when switching to comments tab
         if (_selectedTabIndex == 1) {
           _fetchComments();
+        } else if (_selectedTabIndex == 0) {
+          // Fetch progress data when PROGRESS tab is selected
+          _fetchTicketProgress();
         }
       });
     });
 
-    // If we only have a ticket ID, fetch the full ticket data
     if (widget.ticketData.containsKey('id') && widget.ticketData.length < 5) {
       _fetchTicketDetails(widget.ticketData['id']);
       print(
           'njhebnvaebvfubrsbvbnjueb>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>${widget.ticketData['id']}');
+    }
+
+    // Fetch ticket progress on initial load
+    _fetchTicketProgress();
+  }
+
+  // Add function to fetch ticket progress
+  Future<void> _fetchTicketProgress() async {
+    if (widget.ticketData['id'] == null) return;
+
+    // Don't reload if already loading
+    if (_isLoadingProgress) return;
+
+    setState(() {
+      _isLoadingProgress = true;
+      _hasProgressError = false;
+    });
+
+    try {
+      var headers = {
+        'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+      };
+
+      // Use the ticket ID from the widget data
+      var request = http.Request(
+          'GET',
+          Uri.parse(
+              'https://tech.skytechiez.co/api/ticket-progress/${widget.ticketData['id']}'));
+
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        String responseBody = await response.stream.bytesToString();
+        print('Ticket progress response: $responseBody');
+
+        Map<String, dynamic> responseData = jsonDecode(responseBody);
+
+        if (mounted) {
+          setState(() {
+            // Parse the ticket_progress array from the response
+            if (responseData.containsKey('ticket_progress') &&
+                responseData['ticket_progress'] is List) {
+              // Get the progress items from API
+              List<String> progressItems =
+                  List<String>.from(responseData['ticket_progress']);
+
+              // Remove duplicates by converting to Set and back to List
+              // This ensures each status appears only once
+              _ticketProgress = progressItems.toSet().toList();
+            } else {
+              // Fallback to default progress items if API doesn't return expected format
+              _ticketProgress = [
+                "New ticket",
+                "Assigned to Technician",
+                "Pending",
+                "In Progress",
+                "Resolved"
+              ];
+            }
+            _isLoadingProgress = false;
+          });
+        }
+      } else {
+        print('Failed to fetch ticket progress: ${response.reasonPhrase}');
+        if (mounted) {
+          setState(() {
+            _isLoadingProgress = false;
+            _hasProgressError = true;
+          });
+          _showErrorSnackBar(
+              'Failed to load ticket progress: ${response.reasonPhrase}');
+        }
+      }
+    } catch (e) {
+      print('Error fetching ticket progress: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingProgress = false;
+          _hasProgressError = true;
+        });
+        _showErrorSnackBar('Error loading ticket progress: $e');
+      }
     }
   }
 
@@ -132,6 +224,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
           onPressed: () {
             if (_selectedTabIndex == 1) {
               _fetchComments();
+            } else if (_selectedTabIndex == 0) {
+              _fetchTicketProgress();
             } else if (widget.ticketData.containsKey('id')) {
               _fetchTicketDetails(widget.ticketData['id']);
             }
@@ -342,37 +436,55 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
           body: TabBarView(
             controller: _tabController,
             children: [
-              // PROGRESS Tab
+              // PROGRESS Tab - Updated to use API data
               Container(
                 color: AppColors.cardBackground,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _buildProgressItem('New ticket', true),
-                      if (widget.ticketData['status'] != 'Completed' &&
-                          widget.ticketData['status'] != 'Resolved') ...[
-                        _buildProgressItem('Acknowledged by Support',
-                            widget.ticketData['status'] != 'New'),
-                        _buildProgressItem('Assigned to Technician',
-                            widget.ticketData['status'] == 'In Progress'),
-                        _buildProgressItem('In Progress',
-                            widget.ticketData['status'] == 'In Progress'),
-                        _buildProgressItem('Resolved', false, isLast: true),
-                      ] else if (widget.ticketData['status'] == 'Resolved') ...[
-                        _buildProgressItem('Acknowledged by Support', true),
-                        _buildProgressItem('Assigned to Technician', true),
-                        _buildProgressItem('In Progress', true),
-                        _buildProgressItem('Resolved', true, isLast: true),
-                      ] else ...[
-                        _buildProgressItem('Acknowledged by Support', true),
-                        _buildProgressItem('Assigned to Technician', true),
-                        _buildProgressItem('In Progress', true),
-                        _buildProgressItem('Resolved', true, isLast: true),
-                      ],
-                    ],
-                  ),
-                ),
+                child: _isLoadingProgress
+                    ? const Center(child: CircularProgressIndicator())
+                    : _hasProgressError
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 48,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Failed to load progress data',
+                                  style: TextStyle(
+                                    color: AppColors.grey,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: _fetchTicketProgress,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryBlue,
+                                  ),
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              children: [
+                                // Display progress items from API
+                                for (int i = 0; i < _ticketProgress.length; i++)
+                                  _buildProgressItem(
+                                    _ticketProgress[i],
+                                    // Determine if this step is completed based on status
+                                    _isProgressItemCompleted(i),
+                                    isLast: i == _ticketProgress.length - 1,
+                                  ),
+                              ],
+                            ),
+                          ),
               ),
 
               // COMMENTS Tab
@@ -565,6 +677,58 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     );
   }
 
+  // Modified helper method to determine if a progress item is completed
+  // Modified helper method to determine if a progress item is completed
+  bool _isProgressItemCompleted(int index) {
+    final status = widget.ticketData['status']?.toLowerCase() ?? '';
+    final currentItem = _ticketProgress[index].toLowerCase();
+
+    // Get the current progress index based on status
+    int currentProgressIndex = _getCurrentProgressIndex(status);
+
+    // If the current item's index is less than or equal to the current progress index,
+    // it means this step has been completed
+    return index <= currentProgressIndex;
+  }
+
+// Helper method to determine the current progress index based on status
+  int _getCurrentProgressIndex(String status) {
+    // Find the indices of specific progress items
+    int newTicketIndex = _findProgressItemIndex('new ticket');
+    int assignedIndex = _findProgressItemIndex('assigned');
+    int pendingIndex = _findProgressItemIndex('pending');
+    int inProgressIndex = _findProgressItemIndex('in progress');
+    int resolvedIndex = _findProgressItemIndex('resolved');
+
+    // Determine current progress based on status
+    if (status == 'closed' || status == 'resolved' || status == 'completed') {
+      // All steps are completed
+      return _ticketProgress.length - 1;
+    } else if (status == 'in progress') {
+      return inProgressIndex;
+    } else if (status == 'pending') {
+      return pendingIndex;
+    } else if (status == 'assigned') {
+      return assignedIndex;
+    } else if (status == 'new') {
+      return newTicketIndex;
+    }
+
+    // Default: only the first step is completed
+    return 0;
+  }
+
+// Helper method to find the index of a progress item by partial text match
+  int _findProgressItemIndex(String partialText) {
+    for (int i = 0; i < _ticketProgress.length; i++) {
+      if (_ticketProgress[i].toLowerCase().contains(partialText)) {
+        return i;
+      }
+    }
+    // If not found, return a large number to indicate it's not reached yet
+    return 999;
+  }
+
   Widget _buildInfoCard() {
     // Format date to be more readable
     String formattedDate = widget.ticketData['date'] ?? '';
@@ -640,7 +804,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              if ((widget.ticketData['description'] ?? '').length > 100)
+              if ((widget.ticketData['description'] ?? '').length > 100) ...[
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -675,6 +839,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                     ),
                   ),
                 ),
+              ],
               // Show attachment if available
               if (widget.ticketData['attachment_url'] != null &&
                   widget.ticketData['attachment_url'].toString().isNotEmpty)
@@ -732,7 +897,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
         ));
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String? value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -750,7 +915,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
           ),
           Expanded(
             child: Text(
-              value,
+              value ?? 'Not specified',
               style: const TextStyle(
                 color: AppColors.white,
                 fontSize: 14,
@@ -896,7 +1061,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     } else if (status.toLowerCase() == 'pending') {
       statusColor = Colors.orange;
     } else if (status.toLowerCase() == 'completed' ||
-        status.toLowerCase() == 'resolved') {
+        status.toLowerCase() == 'resolved' ||
+        status.toLowerCase() == 'closed') {
       statusColor = Colors.green;
     } else if (status.toLowerCase() == 'new') {
       statusColor = Colors.purple;
