@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sky_techiez/controllers/auth_controller.dart';
-import 'package:sky_techiez/screens/create_account_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
@@ -140,7 +139,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        // Forgot password functionality
+                        // Navigate to Forgot Password screen using GetX named route
+                        Get.toNamed('/forgotPassword');
                       },
                       child: const Text(
                         'Forgot Password?',
@@ -182,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   CustomButton(
                     text: 'Create New Account',
                     onPressed: () {
-                      Get.to(() => const CreateAccountScreen());
+                      Get.toNamed('/createAccount'); // Using named route
                     },
                     isOutlined: true,
                   ),

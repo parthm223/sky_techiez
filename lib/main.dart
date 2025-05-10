@@ -2,8 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
+import 'package:sky_techiez/screens/about_us_screen.dart';
+import 'package:sky_techiez/screens/create_account_email_screen.dart';
+import 'package:sky_techiez/screens/create_account_mobile_screen.dart';
+import 'package:sky_techiez/screens/create_account_screen.dart';
+import 'package:sky_techiez/screens/create_password_screen.dart';
+import 'package:sky_techiez/screens/create_ticket_screen.dart';
+import 'package:sky_techiez/screens/drivers_license_capture_screen.dart';
+import 'package:sky_techiez/screens/edit_profile_screen.dart';
+import 'package:sky_techiez/screens/forgot_password_screen.dart';
+import 'package:sky_techiez/screens/government_id_capture_screen.dart';
+import 'package:sky_techiez/screens/home_content.dart';
+import 'package:sky_techiez/screens/home_screen.dart';
+import 'package:sky_techiez/screens/login_screen.dart';
+import 'package:sky_techiez/screens/owen_agreement_screen.dart';
+import 'package:sky_techiez/screens/passport_capture_screen.dart';
+import 'package:sky_techiez/screens/privacy_policy_screen.dart';
+import 'package:sky_techiez/screens/profile_screen.dart';
+import 'package:sky_techiez/screens/refund_policy_screen.dart';
+import 'package:sky_techiez/screens/services_screen.dart';
 import 'package:sky_techiez/screens/splas_screen.dart';
-
+import 'package:sky_techiez/screens/subscriptions_screen.dart';
+import 'package:sky_techiez/screens/terms_conditions_screen.dart';
+import 'package:sky_techiez/screens/ticket_status_screen.dart';
+import 'package:sky_techiez/screens/upload_selfie_screen.dart';
+import 'package:sky_techiez/screens/verification_complete_screen.dart';
+import 'package:sky_techiez/screens/welcome_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 
 void main() async {
@@ -20,8 +44,59 @@ class MyApp extends StatelessWidget {
       title: 'Sky Techiez',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme(),
-      home: const SplashScreen(),
-      // home: const HomeScreen(),
+      initialRoute: '/splash',
+      getPages: [
+        GetPage(name: '/splash', page: () => const SplashScreen()),
+        GetPage(name: '/aboutUs', page: () => const AboutUsScreen()),
+        GetPage(
+            name: '/createAccountEmail',
+            page: () => const CreateAccountEmailScreen()),
+        GetPage(
+            name: '/createAccountMobile',
+            page: () => const CreateAccountMobileScreen()),
+        GetPage(
+            name: '/createAccount', page: () => const CreateAccountScreen()),
+        GetPage(
+            name: '/createPassword', page: () => const CreatePasswordScreen()),
+        GetPage(name: '/createTicket', page: () => const CreateTicketScreen()),
+        // GetPage(name: '/documentCapture', page: () => const DocumentCaptureScreen()),
+        GetPage(
+            name: '/driversLicenseCapture',
+            page: () => const DriversLicenseCaptureScreen()),
+        GetPage(name: '/editProfile', page: () => const EditProfileScreen()),
+        GetPage(
+            name: '/forgotPassword', page: () => const ForgotPasswordScreen()),
+        GetPage(
+            name: '/governmentIdCapture',
+            page: () => const GovernmentIdCaptureScreen()),
+        GetPage(name: '/homeContent', page: () => HomeContent()),
+        GetPage(name: '/home', page: () => const HomeScreen()),
+        // GetPage(name: '/documentSelection', page: () => const DocumentSelectionScreen()),
+        GetPage(name: '/login', page: () => const LoginScreen()),
+        GetPage(
+            name: '/skyTechiezAgreement',
+            page: () => const SkyTechiezAgreementScreen()),
+        GetPage(
+            name: '/passportCapture',
+            page: () => const PassportCaptureScreen()),
+        GetPage(
+            name: '/privacyPolicy', page: () => const PrivacyPolicyScreen()),
+        GetPage(name: '/profile', page: () => const ProfileScreen()),
+        GetPage(name: '/refundPolicy', page: () => const RefundPolicyScreen()),
+        GetPage(name: '/services', page: () => const ServicesScreen()),
+        GetPage(
+            name: '/subscriptions', page: () => const SubscriptionsScreen()),
+        GetPage(
+            name: '/termsConditions',
+            page: () => const TermsConditionsScreen()),
+        // GetPage(name: '/ticketDetails', page: () => const TicketDetailsScreen()),
+        GetPage(name: '/ticketStatus', page: () => const TicketStatusScreen()),
+        GetPage(name: '/uploadSelfie', page: () => const UploadSelfieScreen()),
+        GetPage(
+            name: '/verificationComplete',
+            page: () => const VerificationCompleteScreen()),
+        GetPage(name: '/welcome', page: () => const WelcomeScreen()),
+      ],
     );
   }
 }

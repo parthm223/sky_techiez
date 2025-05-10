@@ -1,0 +1,2 @@
+C:/Par/sky_techiez/android/app/.cxx/Debug/2h4b693n/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Par/sky_techiez/android/app/.cxx/Debug/2h4b693n/armeabi-v7a/CMakeFiles/rebuild_cache.dir

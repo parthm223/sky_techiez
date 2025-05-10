@@ -174,23 +174,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                       }),
                     ],
 
-                    // Display default tickets
-                    if (_userTickets.isEmpty) ...[
-                      const SizedBox(height: 16),
-                      _buildTicketCard(
-                        context,
-                        0,
-                        'TKT-2023-001',
-                        'Technical Issue with Login',
-                        'In Progress',
-                        'Mar 15, 2023',
-                        'High',
-                        'Your ticket is being reviewed by our technical team.',
-                        _latestAppointment ==
-                            null, // Only active if no appointment
-                      ),
-                    ],
-
                     const SizedBox(height: 24),
                     // _hasSubscription
                     // ?

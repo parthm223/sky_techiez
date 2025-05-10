@@ -1,4 +1,4 @@
-package com.example.sky_techiez
+package com.skytechiez.skytechiezapp
 
 import io.flutter.embedding.android.FlutterActivity
 

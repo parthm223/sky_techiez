@@ -2,52 +2,60 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:sky_techiez/screens/home_screen.dart';
-import 'package:sky_techiez/screens/welcome_screen.dart';
-
 import '../widgets/session_string.dart';
 
 class SplashController extends GetxController
     with GetSingleTickerProviderStateMixin {
-  SplashController();
-
-  late AnimationController _controller;
-  late Animation<Offset> offsetAnimation;
+  late final AnimationController animationController;
+  late final Animation<Offset> offsetAnimation;
+  final _storage = GetStorage();
+  final _random = Random();
 
   @override
   void onInit() {
     super.onInit();
-    _controller =
-        AnimationController(duration: const Duration(seconds: 0), vsync: this);
-    offsetAnimation =
-        Tween<Offset>(begin: Offset.zero, end: const Offset(0.0, 0.0)).animate(
-            CurvedAnimation(parent: _controller, curve: Curves.decelerate));
+    _initializeAnimations();
+  }
+
+  void _initializeAnimations() {
+    animationController = AnimationController(
+      duration: const Duration(seconds: 1), // Reduced from 0 to 1 second
+      vsync: this,
+    );
+
+    offsetAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.5), // Start slightly below
+      end: Offset.zero, // Move to normal position
+    ).animate(
+      CurvedAnimation(
+        parent: animationController,
+        curve: Curves.easeOutQuart,
+      ),
+    );
+
+    animationController.forward();
   }
 
   @override
   void onReady() {
     super.onReady();
-    _launchPage();
+    _navigateToAppropriateScreen();
   }
 
-  _launchPage() async {
-    // Generate a random delay between 7-9 seconds
-    final random = Random();
-    final delaySeconds = 5 + random.nextInt(2); // Random between 7-9 seconds
+  Future<void> _navigateToAppropriateScreen() async {
+    // Random delay between 5-7 seconds (improved from 7-9)
+    final delaySeconds = 5 + _random.nextInt(3);
+    await Future.delayed(Duration(seconds: delaySeconds));
 
-    await Future.delayed(Duration(seconds: delaySeconds), () {});
+    final isLoggedIn = _storage.hasData(isLoginSession);
+    final routeName = isLoggedIn ? '/home' : '/welcome';
 
-    bool whereLogin = GetStorage().hasData(isLoginSession);
-    if (whereLogin == false) {
-      Get.offAll(() => const WelcomeScreen());
-    } else {
-      Get.offAll(() => const HomeScreen());
-    }
+    Get.offAllNamed(routeName); // Using named routes
   }
 
   @override
   void onClose() {
-    _controller.dispose();
+    animationController.dispose();
     super.onClose();
   }
 }

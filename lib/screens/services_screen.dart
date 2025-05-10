@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/models/service_model.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
 import 'package:sky_techiez/screens/subscriptions_screen.dart';
@@ -7,6 +10,7 @@ import 'package:sky_techiez/services/service_api.dart';
 import 'package:sky_techiez/services/subscription_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
+import 'package:sky_techiez/widgets/session_string.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ServicesScreen extends StatefulWidget {
@@ -22,12 +26,64 @@ class _ServicesScreenState extends State<ServicesScreen> {
   List<Service> _services = [];
   bool _loadingServices = true;
   String _errorMessage = '';
+  bool _isLoadingTollFree = false;
+  String? _tollFreeNumber;
 
   @override
   void initState() {
     super.initState();
     _checkSubscriptionStatus();
     _fetchServices();
+    _fetchTollFreeNumber();
+  }
+
+  Future<void> _fetchTollFreeNumber() async {
+    setState(() {
+      _isLoadingTollFree = true;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://tech.skytechiez.co/api/settings'),
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['settings'] is List) {
+          for (var item in data['settings']) {
+            if (item['key'] == 'toll_free_number') {
+              _tollFreeNumber = item['value'];
+              break;
+            }
+          }
+        }
+      } else {
+        print('Failed to load toll-free number');
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoadingTollFree = false;
+      });
+    }
+  }
+
+  void _launchDialer(String number) async {
+    final Uri telUri = Uri(scheme: 'tel', path: number);
+    if (await canLaunchUrl(telUri)) {
+      await launchUrl(telUri);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open dialer')),
+      );
+    }
   }
 
   Future<void> _checkSubscriptionStatus() async {
@@ -243,7 +299,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
                                     Expanded(
                                       child: CustomButton(
                                         text: 'Call Now',
-                                        onPressed: () {},
+                                        onPressed: _isLoadingTollFree ||
+                                                _tollFreeNumber == null
+                                            ? null
+                                            : () =>
+                                                _launchDialer(_tollFreeNumber!),
                                         isOutlined: true,
                                       ),
                                     ),

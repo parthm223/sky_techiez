@@ -1,0 +1,2 @@
+C:/Par/sky_techiez/android/app/.cxx/RelWithDebInfo/4cy4n3l2/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Par/sky_techiez/android/app/.cxx/RelWithDebInfo/4cy4n3l2/arm64-v8a/CMakeFiles/rebuild_cache.dir

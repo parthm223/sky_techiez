@@ -3,21 +3,14 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/controllers/auth_controller.dart';
 import 'package:sky_techiez/models/user_login.dart';
-import 'package:sky_techiez/screens/about_us_screen.dart';
-import 'package:sky_techiez/screens/login_screen.dart';
 import 'package:sky_techiez/screens/profile_screen.dart';
-import 'package:sky_techiez/screens/privacy_policy_screen.dart';
-import 'package:sky_techiez/screens/refund_policy_screen.dart';
 import 'package:sky_techiez/screens/services_screen.dart';
 import 'package:sky_techiez/screens/subscriptions_screen.dart';
-import 'package:sky_techiez/screens/terms_conditions_screen.dart';
 import 'package:sky_techiez/screens/ticket_status_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/services/notification_service.dart';
 import 'package:sky_techiez/models/notification_model.dart';
 import 'package:sky_techiez/widgets/notifications_drawer.dart';
-import 'package:sky_techiez/screens/owen_agreement_screen.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../widgets/session_string.dart';
 import 'home_content.dart';
@@ -301,35 +294,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     icon: Icons.info_outline,
                     title: 'About Us',
-                    onTap: () => _navigateTo(context, const AboutUsScreen()),
+                    onTap: () => Get.toNamed('/aboutUs'),
                   ),
                   _buildDrawerItem(
                     context,
                     icon: Icons.policy_outlined,
                     title: 'Refund Policy',
-                    onTap: () =>
-                        _navigateTo(context, const RefundPolicyScreen()),
+                    onTap: () => Get.toNamed('/refundPolicy'),
                   ),
                   _buildDrawerItem(
                     context,
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
-                    onTap: () =>
-                        _navigateTo(context, const PrivacyPolicyScreen()),
+                    onTap: () => Get.toNamed('/privacyPolicy'),
                   ),
                   _buildDrawerItem(
                     context,
                     icon: Icons.description_outlined,
                     title: 'Terms & Conditions',
-                    onTap: () =>
-                        _navigateTo(context, const TermsConditionsScreen()),
+                    onTap: () => Get.toNamed('/termsConditions'),
                   ),
                   _buildDrawerItem(
                     context,
                     icon: Icons.gavel_outlined,
                     title: 'Owen Agreement',
-                    onTap: () =>
-                        _navigateTo(context, SkyTechiezAgreementScreen()),
+                    onTap: () => Get.toNamed('/skyTechiezAgreement'),
                   ),
                 ],
               ),
@@ -357,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   GetStorage().remove(userCollectionName);
 
                   // Navigate to Login Screen
-                  Get.offAll(() => LoginScreen());
+                  Get.offAllNamed('/login');
                 },
               ),
             ),
@@ -436,30 +425,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _navigateTo(BuildContext context, Widget screen) {
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => screen,
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(1.0, 0.0);
-          const end = Offset.zero;
-          const curve = Curves.easeInOut;
-
-          var tween = Tween(begin: begin, end: end).chain(
-            CurveTween(curve: curve),
-          );
-
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: child,
-          );
-        },
       ),
     );
   }

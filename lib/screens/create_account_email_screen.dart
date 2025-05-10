@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -18,13 +19,15 @@ class CreateAccountEmailScreen extends StatefulWidget {
 class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _otpController = TextEditingController();
+  String _otp = "";
 
   // Get the registration controller
   final RegistrationController _registrationController =
       Get.find<RegistrationController>();
 
   bool _otpSent = false;
+  bool _isSendingOtp = false;
+  bool _isVerifyingOtp = false;
   String firstName = "";
   String lastName = "";
   String dob = "";
@@ -49,7 +52,6 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
   @override
   void dispose() {
     _emailController.dispose();
-    _otpController.dispose();
     print("Email controller disposed");
     super.dispose();
   }
@@ -57,6 +59,10 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
   // Function to send OTP via API
   Future<void> _sendOtp() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isSendingOtp = true;
+      });
+
       final email = _emailController.text.trim();
       final url = Uri.parse('https://tech.skytechiez.co/api/send-otp');
 
@@ -78,16 +84,19 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
         if (response.statusCode == 200) {
           setState(() {
             _otpSent = true;
+            _isSendingOtp = false;
           });
           print("OTP successfully sent!");
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('OTP sent to your email'),
-              backgroundColor: Colors
-                  .blue, // Changed from AppColors.primaryBlue to Colors.blue
+              backgroundColor: Colors.blue,
             ),
           );
         } else {
+          setState(() {
+            _isSendingOtp = false;
+          });
           print("Failed to send OTP. Server responded with ${response.body}");
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -97,6 +106,9 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
           );
         }
       } catch (error) {
+        setState(() {
+          _isSendingOtp = false;
+        });
         print("Error sending OTP: $error");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -111,8 +123,12 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
   // Function to verify OTP via API
   Future<void> _verifyOtp() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isVerifyingOtp = true;
+      });
+
       final email = _emailController.text.trim();
-      final otp = _otpController.text.trim();
+      final otp = _otp;
       final url = Uri.parse('https://tech.skytechiez.co/api/verify-otp');
 
       print("Verifying OTP: $otp for email: $email");
@@ -131,6 +147,9 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
         print("Response body: ${response.body}");
 
         if (response.statusCode == 200) {
+          setState(() {
+            _isVerifyingOtp = false;
+          });
           print("OTP Verified Successfully!");
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -147,6 +166,9 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
             "email": email,
           });
         } else {
+          setState(() {
+            _isVerifyingOtp = false;
+          });
           print("Invalid OTP. Server responded with: ${response.body}");
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -156,6 +178,9 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
           );
         }
       } catch (error) {
+        setState(() {
+          _isVerifyingOtp = false;
+        });
         print("Error verifying OTP: $error");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -211,17 +236,42 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
                 ),
                 if (_otpSent) ...[
                   const SizedBox(height: 16),
-                  CustomTextField(
-                    label: 'OTP',
-                    hint: 'Enter OTP',
-                    controller: _otpController,
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter OTP';
-                      }
-                      return null;
-                    },
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'OTP',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: OtpTextField(
+                          numberOfFields: 6,
+                          borderColor: Colors.blue,
+                          showFieldAsBox: true,
+                          fieldHeight: 70,
+                          fieldWidth: 45, // Reduced width to fit all fields
+                          margin: EdgeInsets.symmetric(
+                              horizontal: 4), // Reduced margin
+                          textStyle: TextStyle(
+                            fontSize: 20, // Slightly reduced font size
+                            fontWeight: FontWeight.bold,
+                          ),
+                          onCodeChanged: (String code) {
+                            // Handle each digit change
+                          },
+                          onSubmit: (String verificationCode) {
+                            setState(() {
+                              _otp = verificationCode;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -230,6 +280,7 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
                     text: 'Verify OTP',
                     onPressed: _verifyOtp,
                     width: double.infinity,
+                    isLoading: _isVerifyingOtp,
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -267,6 +318,7 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
                               }
                             },
                       width: 120,
+                      isLoading: _isSendingOtp,
                     ),
                   ],
                 ),

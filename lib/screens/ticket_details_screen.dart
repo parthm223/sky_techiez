@@ -680,15 +680,48 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
   // Modified helper method to determine if a progress item is completed
   // Modified helper method to determine if a progress item is completed
   bool _isProgressItemCompleted(int index) {
-    final status = widget.ticketData['status']?.toLowerCase() ?? '';
-    final currentItem = _ticketProgress[index].toLowerCase();
+    // Get the current status from ticket data
+    final currentStatus = widget.ticketData['status']?.toLowerCase() ?? '';
+    final progressItem = _ticketProgress[index].toLowerCase();
 
-    // Get the current progress index based on status
-    int currentProgressIndex = _getCurrentProgressIndex(status);
+    // Check if the current progress item is in the ticket_progress array
+    // and its index is less than or equal to the current item's index
 
-    // If the current item's index is less than or equal to the current progress index,
-    // it means this step has been completed
-    return index <= currentProgressIndex;
+    // For "In Progress" status, all items up to and including "In Progress" are completed
+    if (currentStatus == 'in progress') {
+      return progressItem == 'in progress' ||
+          progressItem == 'pending' ||
+          progressItem == 'assigned to parth patel' ||
+          progressItem.contains('assigned to');
+    }
+    // For "Pending" status, all items up to and including "Pending" are completed
+    else if (currentStatus == 'pending') {
+      return progressItem == 'pending' || progressItem.contains('assigned to');
+    }
+    // For "Resolved" status, all items are completed
+    else if (currentStatus == 'resolved' ||
+        currentStatus == 'closed' ||
+        currentStatus == 'completed') {
+      return true;
+    }
+    // For other statuses, check if the item matches the current status or is a previous step
+    else {
+      // If the item contains the current status, it's completed
+      if (progressItem.contains(currentStatus)) {
+        return true;
+      }
+
+      // Check if this is an earlier step in the progress
+      if ((currentStatus == 'in progress' &&
+              (progressItem == 'pending' ||
+                  progressItem.contains('assigned to'))) ||
+          (currentStatus == 'pending' &&
+              progressItem.contains('assigned to'))) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
 // Helper method to determine the current progress index based on status
@@ -809,7 +842,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      // Show full description in a dialog
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
@@ -1090,6 +1122,13 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
 
   Widget _buildProgressItem(String text, bool isCompleted,
       {bool isLast = false}) {
+    // Check if this is an "Assigned to" item without a specific name
+    bool isAssignedWithoutName =
+        text.contains("Assigned to") && !text.contains("Assigned to ");
+
+    // If it's "Assigned to" without a name, we'll force it to be completed and show "New Ticket" above
+    bool showCheckmark = isCompleted || isAssignedWithoutName;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1099,13 +1138,14 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: isCompleted ? AppColors.primaryBlue : Colors.transparent,
+                color:
+                    showCheckmark ? AppColors.primaryBlue : Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isCompleted ? AppColors.primaryBlue : AppColors.grey,
+                  color: showCheckmark ? AppColors.primaryBlue : AppColors.grey,
                   width: 2,
                 ),
-                boxShadow: isCompleted
+                boxShadow: showCheckmark
                     ? [
                         BoxShadow(
                           color: AppColors.primaryBlue.withOpacity(0.3),
@@ -1116,8 +1156,8 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                     : null,
               ),
               child: Icon(
-                isCompleted ? Icons.check : Icons.access_time,
-                color: isCompleted ? AppColors.white : AppColors.grey,
+                showCheckmark ? Icons.check : Icons.access_time,
+                color: showCheckmark ? AppColors.white : AppColors.grey,
                 size: 20,
               ),
             ),
@@ -1125,7 +1165,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
               Container(
                 width: 2,
                 height: 40,
-                color: isCompleted
+                color: showCheckmark
                     ? AppColors.primaryBlue
                     : AppColors.grey.withOpacity(0.5),
               ),
@@ -1136,15 +1176,25 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (isAssignedWithoutName)
+                Text(
+                  "New Ticket",
+                  style: TextStyle(
+                    color: AppColors.primaryBlue,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               Text(
                 text,
                 style: TextStyle(
-                  color: isCompleted ? AppColors.white : AppColors.grey,
+                  color: showCheckmark ? AppColors.white : AppColors.grey,
                   fontSize: 16,
-                  fontWeight: isCompleted ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight:
+                      showCheckmark ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
-              if (isCompleted)
+              if (showCheckmark)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(

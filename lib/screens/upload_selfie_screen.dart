@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
 import 'package:sky_techiez/controllers/registration_controller.dart';
 import 'package:sky_techiez/screens/create_password_screen.dart';
@@ -14,14 +14,10 @@ class UploadSelfieScreen extends StatefulWidget {
   State<UploadSelfieScreen> createState() => _UploadSelfieScreenState();
 }
 
-class _UploadSelfieScreenState extends State<UploadSelfieScreen>
-    with WidgetsBindingObserver {
-  CameraController? _cameraController;
-  List<CameraDescription> _cameras = [];
-  bool _isCameraInitialized = false;
-  bool _isCapturing = false;
+class _UploadSelfieScreenState extends State<UploadSelfieScreen> {
+  final ImagePicker _picker = ImagePicker();
   File? _capturedImage;
-  bool _isFrontCamera = true;
+  bool _isCapturing = false;
 
   // Get the registration controller
   final RegistrationController _registrationController =
@@ -31,6 +27,8 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
   String dob = "";
   String email = "";
   String mobile = "";
+  String selphoto = "";
+
   @override
   void initState() {
     firstName = Get.arguments["first_name"];
@@ -39,109 +37,15 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
     email = Get.arguments["email"];
     mobile = Get.arguments["mobile_number"];
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
 
     // Check if we already have a profile image
     if (_registrationController.profileImage.value != null) {
       _capturedImage = _registrationController.profileImage.value;
-    } else {
-      _initializeCamera();
     }
   }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _cameraController?.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // App state changed before we got the chance to initialize.
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return;
-    }
-
-    if (state == AppLifecycleState.inactive) {
-      _cameraController?.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      _initializeCamera();
-    }
-  }
-
-  Future<void> _initializeCamera() async {
-    try {
-      _cameras = await availableCameras();
-
-      if (_cameras.isEmpty) {
-        return;
-      }
-
-      // Start with front camera
-      final frontCameras = _cameras
-          .where((camera) => camera.lensDirection == CameraLensDirection.front)
-          .toList();
-      final cameraToUse =
-          frontCameras.isNotEmpty ? frontCameras.first : _cameras.first;
-
-      _cameraController = CameraController(
-        cameraToUse,
-        ResolutionPreset.high,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
-
-      await _cameraController!.initialize();
-
-      if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error initializing camera: $e');
-    }
-  }
-
-  Future<void> _switchCamera() async {
-    if (_cameras.length < 2) return;
-
-    setState(() {
-      _isCameraInitialized = false;
-      _isFrontCamera = !_isFrontCamera;
-    });
-
-    await _cameraController?.dispose();
-
-    final cameraToUse = _isFrontCamera
-        ? _cameras.firstWhere(
-            (camera) => camera.lensDirection == CameraLensDirection.front)
-        : _cameras.firstWhere(
-            (camera) => camera.lensDirection == CameraLensDirection.back);
-
-    _cameraController = CameraController(
-      cameraToUse,
-      ResolutionPreset.high,
-      enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.jpeg,
-    );
-
-    await _cameraController!.initialize();
-
-    if (mounted) {
-      setState(() {
-        _isCameraInitialized = true;
-      });
-    }
-  }
-
-  var selphoto = "";
 
   Future<void> _takePicture() async {
-    if (_cameraController == null ||
-        !_cameraController!.value.isInitialized ||
-        _isCapturing) {
+    if (_isCapturing) {
       return;
     }
 
@@ -150,15 +54,57 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
         _isCapturing = true;
       });
 
-      final XFile photo = await _cameraController!.takePicture();
-      selphoto = photo.path;
+      // Use image_picker to capture image from camera
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+        imageQuality: 90,
+        maxWidth: 1200,
+        maxHeight: 1200,
+      );
 
-      setState(() {
-        _capturedImage = File(photo.path);
-        _isCapturing = false;
-      });
+      if (photo != null) {
+        selphoto = photo.path;
+        setState(() {
+          _capturedImage = File(photo.path);
+        });
+      }
     } catch (e) {
       debugPrint('Error taking picture: $e');
+    } finally {
+      setState(() {
+        _isCapturing = false;
+      });
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    if (_isCapturing) {
+      return;
+    }
+
+    try {
+      setState(() {
+        _isCapturing = true;
+      });
+
+      // Use image_picker to select image from gallery
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 90,
+        maxWidth: 1200,
+        maxHeight: 1200,
+      );
+
+      if (photo != null) {
+        selphoto = photo.path;
+        setState(() {
+          _capturedImage = File(photo.path);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    } finally {
       setState(() {
         _isCapturing = false;
       });
@@ -195,136 +141,97 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
         elevation: 0,
       ),
       extendBodyBehindAppBar: true,
-      body:
-          _capturedImage != null ? _buildPreviewScreen() : _buildCameraScreen(),
+      body: _capturedImage != null
+          ? _buildPreviewScreen()
+          : _buildCaptureScreen(),
     );
   }
 
-  Widget _buildCameraScreen() {
-    return Stack(
-      children: [
-        // Camera Preview
-        if (_isCameraInitialized)
-          SizedBox(
-            width: double.infinity,
-            height: double.infinity,
-            child: CameraPreview(_cameraController!),
-          )
-        else
-          const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primaryBlue,
-            ),
-          ),
-
-        // Overlay
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withOpacity(0.7),
-                Colors.transparent,
-                Colors.transparent,
-                Colors.black.withOpacity(0.7),
+  Widget _buildCaptureScreen() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withOpacity(0.7),
+            Colors.black.withOpacity(0.5),
+            Colors.black.withOpacity(0.5),
+            Colors.black.withOpacity(0.7),
+          ],
+          stops: const [0.0, 0.2, 0.8, 1.0],
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 80),
+          // Face Outline Placeholder
+          // Container(
+          //   width: 250,
+          //   height: 250,
+          //   decoration: BoxDecoration(
+          //     border: Border.all(color: AppColors.primaryBlue, width: 3),
+          //     shape: BoxShape.circle,
+          //   ),
+          //   child: Container(
+          //     decoration: BoxDecoration(
+          //       border:
+          //           Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+          //       shape: BoxShape.circle,
+          //     ),
+          //     child: const Center(
+          //       child: Icon(
+          //         Icons.face,
+          //         size: 100,
+          //         color: Colors.white54,
+          //       ),
+          //     ),
+          //   ),
+          // ),
+          const SizedBox(height: 30),
+          // Instructions
+          const Text(
+            'Take a clear selfie',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(
+                  offset: Offset(1, 1),
+                  blurRadius: 3,
+                  color: Colors.black,
+                ),
               ],
-              stops: const [0.0, 0.2, 0.8, 1.0],
             ),
           ),
-        ),
-
-        // Face Outline
-        Center(
-          child: Container(
-            width: 250,
-            height: 250,
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.primaryBlue, width: 3),
-              shape: BoxShape.circle,
+              color: Colors.black.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                border:
-                    Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-                shape: BoxShape.circle,
+            child: const Text(
+              'Make sure your face is well-lit',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
               ),
             ),
           ),
-        ),
-
-        // Instructions
-        Positioned(
-          top: 100,
-          left: 0,
-          right: 0,
-          child: Column(
-            children: [
-              const Text(
-                'Position your face within the circle',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      offset: Offset(1, 1),
-                      blurRadius: 3,
-                      color: Colors.black,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Make sure your face is well-lit',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Bottom Controls
-        Positioned(
-          bottom: 50,
-          left: 0,
-          right: 0,
-          child: Column(
+          const Spacer(),
+          // Bottom Controls
+          Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Switch Camera Button
-                  if (_cameras.length > 1)
-                    Container(
-                      margin: const EdgeInsets.only(right: 40),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.flip_camera_ios,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: _switchCamera,
-                      ),
-                    ),
-
-                  // Capture Button
+                  // Camera Button
                   GestureDetector(
                     onTap: _isCapturing ? null : _takePicture,
                     child: Container(
@@ -355,9 +262,6 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
                       ),
                     ),
                   ),
-
-                  // Empty space to balance the layout
-                  const SizedBox(width: 68),
                 ],
               ),
               const SizedBox(height: 20),
@@ -369,10 +273,35 @@ class _UploadSelfieScreenState extends State<UploadSelfieScreen>
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              const SizedBox(height: 20),
+              // Gallery Option
+              TextButton.icon(
+                onPressed: _pickFromGallery,
+                icon: const Icon(
+                  Icons.photo_library,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  'Select from Gallery',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  backgroundColor: Colors.black.withOpacity(0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 50),
             ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

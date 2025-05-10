@@ -7,8 +7,6 @@ import 'package:http_parser/http_parser.dart';
 import 'package:sky_techiez/widgets/session_string.dart';
 import 'package:flutter/material.dart';
 
-import '../screens/home_screen.dart';
-
 class AuthService {
   static const String baseUrl = 'https://tech.skytechiez.co/api';
 
@@ -124,7 +122,7 @@ class AuthService {
 
         // Navigate after showing the message
         Future.delayed(const Duration(seconds: 1), () {
-          Get.offAll(() => const HomeScreen());
+          Get.offAllNamed('/home'); // Using named route
         });
 
         return {
