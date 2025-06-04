@@ -664,8 +664,8 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
               _agreedToTerms = value ?? false;
             });
           },
-          fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-            if (states.contains(MaterialState.selected)) {
+          fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.selected)) {
               return Colors.blue;
             }
             return Colors.grey.shade800;

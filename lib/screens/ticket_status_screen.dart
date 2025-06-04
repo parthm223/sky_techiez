@@ -47,7 +47,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
     if (appointmentData != null && mounted) {
       setState(() {
         _latestAppointment = appointmentData;
-        print("_latestAppointment ====================> ${_latestAppointment}");
+        print("_latestAppointment ====================> $_latestAppointment");
       });
     }
   }

@@ -9,7 +9,7 @@ class CommentService {
 
   // Get comments for a ticket
   static Future<List<Map<String, dynamic>>> getComments(String id) async {
-    print("comment page ticket main Id => ${id}");
+    print("comment page ticket main Id => $id");
     final token = _storage.read(tokenKey)?.toString() ?? '';
     print('\n=== GET COMMENTS REQUEST ===');
     print('Ticket ID: $id');
@@ -25,7 +25,7 @@ class CommentService {
       // Create request with proper headers
       var request = http.Request(
         'GET',
-        Uri.parse('$_baseUrl/get-comments/${id}'),
+        Uri.parse('$_baseUrl/get-comments/$id'),
       );
 
       request.headers.addAll({
@@ -106,7 +106,7 @@ class CommentService {
       // Create multipart request
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$_baseUrl/add-comment/${ticketId}'),
+        Uri.parse('$_baseUrl/add-comment/$ticketId'),
       );
 
       // Add headers and fields
