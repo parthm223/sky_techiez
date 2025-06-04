@@ -63,11 +63,11 @@ class AppTheme {
         labelMedium: TextStyle(color: AppColors.white),
         labelSmall: TextStyle(color: AppColors.white),
       ),
-      cardTheme: CardTheme(
+      cardTheme: const CardThemeData(
         color: AppColors.cardBackground,
         elevation: 4,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.all(Radius.circular(8)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

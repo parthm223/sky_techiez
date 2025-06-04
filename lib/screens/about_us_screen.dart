@@ -63,7 +63,7 @@ class AboutUsScreen extends StatelessWidget {
               const SizedBox(height: 8),
               const Center(
                 child: Text(
-                  'Your Trusted IT Support Partner',
+                  'Your Trusted IT Assistance Partner',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white70,
@@ -75,11 +75,11 @@ class AboutUsScreen extends StatelessWidget {
               const SizedBox(height: 24),
               _buildSection(
                 'Our Company',
-                'At Skytechiez, we are committed to providing exceptional technical support services throughout the United States. Our expert team specializes in troubleshooting, system optimization, cybersecurity, and 24/7 customer assistance, ensuring your technology operates smoothly without disruption.',
+                'At Skytechiez, we are committed to providing exceptional technical Assistance services throughout the United States. Our expert team specializes in troubleshooting, system optimization, cybersecurity, and 24/7 customer assistance, ensuring your technology operates smoothly without disruption.',
               ),
               _buildSection(
                 'Our Mission',
-                'We aim to deliver fast, secure, and high-quality IT support that enables businesses and individuals to overcome technical challenges effortlessly.',
+                'We aim to deliver fast, secure, and high-quality IT Assistance that enables businesses and individuals to overcome technical challenges effortlessly.',
               ),
               const SizedBox(height: 24),
               const Text(
@@ -98,13 +98,13 @@ class AboutUsScreen extends StatelessWidget {
               ),
               _buildFeatureItem(
                 Icons.access_time,
-                '24/7 Support',
+                '24/7 Assistance',
                 'Technical issues don\'t adhere to a schedule, nor do we!',
               ),
               _buildFeatureItem(
                 Icons.people,
                 'Customer-Focused Solutions',
-                'We customize our support to meet your unique needs.',
+                'We customize our Assistance to meet your unique needs.',
               ),
               _buildFeatureItem(
                 Icons.attach_money,
@@ -121,9 +121,8 @@ class AboutUsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildServiceItem('Remote IT Support'),
+              _buildServiceItem('Remote IT Assistance'),
               _buildServiceItem('Computer & Software Troubleshooting'),
-              _buildServiceItem('Virus & Malware Removal'),
               _buildServiceItem('Network Security & Optimization'),
               _buildServiceItem('Data Backup & Recovery'),
               _buildServiceItem('Business IT Solutions'),
@@ -151,8 +150,8 @@ class AboutUsScreen extends StatelessWidget {
                         Icons.phone, 'Call Us', '+1 (307) 217-8790'),
                     _buildContactItem(
                         Icons.email, 'Email Us', 'info@skytechiez.co'),
-                    _buildContactItem(
-                        Icons.access_time, 'Hours', '24/7 Support Available'),
+                    _buildContactItem(Icons.access_time, 'Hours',
+                        '24/7 Assistance Available'),
                     const SizedBox(height: 8),
                     const Text(
                       'Need IT assistance? Our team is ready to help you anytime.',
