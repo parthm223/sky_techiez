@@ -169,7 +169,7 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
         ),
         const SizedBox(height: 16),
         _buildAgreementText(
-          'SkyTechiez LLC (Application) Terms of Service ("Service Terms") is provided to you ("Customer") in connection with the SkyTechiez LLC (Application) Onsite(in the future)/Online Support for Home Devices & Peripherals Plan (the "Service") that you have purchased. These terms and conditions constitute the entire agreement between you and SkyTechiez LLC (Application) regarding the Service.',
+          'SkyTechiez LLC (Application) Terms of Service ("Service Terms") is provided to you ("Customer") in connection with the SkyTechiez LLC (Application) Onsite(in the future)/Online Assistance for Home Devices & Peripherals Plan (the "Service") that you have purchased. These terms and conditions constitute the entire agreement between you and SkyTechiez LLC (Application) regarding the Service.',
         ),
         const SizedBox(height: 16),
         const Text(
@@ -182,15 +182,13 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
         ),
         const SizedBox(height: 8),
         _buildAgreementText(
-          'Upon purchasing the Service, you are eligible to receive the following support via onsite (in the future), online, or phone assistance (for example, through online support, or remote access to your computer by a SkyTechiez LLC Agent:',
+          'Upon purchasing the Service, you are eligible to receive the following Assistance via onsite (in the future), online, or phone assistance (for example, through online Assistance, or remote access to your computer by a SkyTechiez LLC Agent:',
         ),
-        _buildBulletPoint(
-            'Software assessment and removal of viruses, malware, spyware, and adware.'),
         _buildBulletPoint(
             'Operating system updates, speed optimization, and junk file removal.'),
         _buildBulletPoint('Coverage for all PC/Laptop issues and cleanup.'),
         _buildBulletPoint(
-            'Support for all software on Mac, iPhone, iPad, and MacBook.'),
+            'Assistance for all software on Mac, iPhone, iPad, and MacBook.'),
         _buildBulletPoint(
             'Assistance with all browser issues and real-time ad blocking.'),
         _buildBulletPoint('Network firewall security with real-time scanning.'),
@@ -351,7 +349,7 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
         ),
         const SizedBox(height: 8),
         _buildBulletPoint(
-          'Payment will be based on a pre-paid monthly subscription plan: Customers will be invoiced and charged for a subscription to SkyTechiez LLC (Application), and upon they will be able to get unlimited support for device issues. Accepted payment methods include online payment through the SkyTechiez application, credit/debit cards, and other electronic payment options.',
+          'Payment will be based on a pre-paid monthly subscription plan: Customers will be invoiced and charged for a subscription to SkyTechiez LLC (Application), and upon they will be able to get unlimited Assistance for device issues. Accepted payment methods include online payment through the SkyTechiez application, credit/debit cards, and other electronic payment options.',
         ),
         const SizedBox(height: 16),
         const Text(
@@ -409,7 +407,7 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
           'Cancellation Policy: Customers must notify SkyTechiez LLC through mail or Application of any cancellations at least seven (7) days before the next scheduled service to avoid charges. Cancellations of the Monthly plan are subject to the terms outlined in our Monthly plan agreement.',
         ),
         _buildAgreementText(
-          'Note: In case of cancellation of the monthly subscription plan all the third party software support will be ended at the time of cancellation (if provided).',
+          'Note: In case of cancellation of the monthly subscription plan all the third party software Assistance will be ended at the time of cancellation (if provided).',
         ),
         const SizedBox(height: 16),
         const Text(
@@ -448,7 +446,7 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
         ),
         const SizedBox(height: 8),
         _buildBulletPoint(
-          'Legal Jurisdiction: This payment policy is governed by the laws of California, and any disputes will be resolved under these laws.',
+          'Legal Jurisdiction: This payment policy is governed by the laws of Wyoming, and any disputes will be resolved under these laws.',
         ),
         const SizedBox(height: 16),
         const Text(
@@ -523,7 +521,7 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
         ),
         const SizedBox(height: 8),
         _buildAgreementText(
-          'If you suspect that your SkyTechiez LLC (Application) Account or any of your security details have been compromised, or if you become aware of any fraud, attempted fraud, or any other security incident (including a cybersecurity attack) affecting you and/or SkyTechiez LLC (Application) (collectively referred to as a "Security Breach"), you must immediately notify SkyTechiez LLC (Application) Support at https://help.SkyTechiez.co or (307) 217-8790, providing accurate and up-to-date information for the duration of the Security Breach. Please take any reasonable steps we need to reduce or manage the Security Breach. Just to let you know, reporting a Security Breach does not guarantee reimbursement for any losses incurred or that SkyTechiez LLC (Application) will be liable for any losses resulting from the Security Breach.',
+          'If you suspect that your SkyTechiez LLC (Application) Account or any of your security details have been compromised, or if you become aware of any fraud, attempted fraud, or any other security incident (including a cybersecurity attack) affecting you and/or SkyTechiez LLC (Application) (collectively referred to as a "Security Breach"), you must immediately notify SkyTechiez LLC (Application) Assistance at https://help.SkyTechiez.co or (307) 217-8790, providing accurate and up-to-date information for the duration of the Security Breach. Please take any reasonable steps we need to reduce or manage the Security Breach. Just to let you know, reporting a Security Breach does not guarantee reimbursement for any losses incurred or that SkyTechiez LLC (Application) will be liable for any losses resulting from the Security Breach.',
         ),
         const SizedBox(height: 16),
         _buildCompanyInfo(),
@@ -595,7 +593,7 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
           ),
           SizedBox(height: 8),
           Text(
-            '7903 Elm Ave #360\nRancho Cucamonga, CA 91730, USA\n+1 (307) 217-8790\nwww.SkyTechiez.co',
+            '1309 Coffeen Avenue STE 1200\nSheridan Wyoming 82801\n+1 (307) 217-8790\nwww.SkyTechiez.co',
             style: TextStyle(
               fontSize: 16,
               height: 1.5,
