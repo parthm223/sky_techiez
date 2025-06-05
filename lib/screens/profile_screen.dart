@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/models/user_login.dart';
 import 'package:sky_techiez/screens/edit_profile_screen.dart';
-import 'package:sky_techiez/screens/id_selection_screen.dart';
 import 'package:sky_techiez/services/profile_service.dart';
 
 import 'package:sky_techiez/theme/app_theme.dart';
