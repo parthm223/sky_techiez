@@ -121,7 +121,7 @@ class AboutUsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildServiceItem('Remote IT Assistance'),
+              _buildServiceItem('Remote IT 0.'),
               _buildServiceItem('Computer & Software Troubleshooting'),
               _buildServiceItem('Network Security & Optimization'),
               _buildServiceItem('Data Backup & Recovery'),

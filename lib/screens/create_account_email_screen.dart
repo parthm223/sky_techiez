@@ -3,6 +3,7 @@ import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'package:sky_techiez/controllers/registration_controller.dart';
 import 'package:sky_techiez/screens/create_account_mobile_screen.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
@@ -31,6 +32,8 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
   String firstName = "";
   String lastName = "";
   String dob = "";
+  int _otpCooldown = 0;
+  Timer? _cooldownTimer;
 
   @override
   void initState() {
@@ -52,13 +55,34 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
   @override
   void dispose() {
     _emailController.dispose();
+    _cooldownTimer?.cancel(); // Cancel timer on dispose
     print("Email controller disposed");
     super.dispose();
   }
 
+  // Start cooldown timer
+  void _startOtpCooldown() {
+    setState(() {
+      _otpCooldown = 50;
+    });
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_otpCooldown <= 1) {
+        timer.cancel();
+        setState(() {
+          _otpCooldown = 0;
+        });
+      } else {
+        setState(() {
+          _otpCooldown--;
+        });
+      }
+    });
+  }
+
   // Function to send OTP via API
   Future<void> _sendOtp() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState!.validate() && _otpCooldown == 0) {
       setState(() {
         _isSendingOtp = true;
       });
@@ -86,6 +110,7 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
             _otpSent = true;
             _isSendingOtp = false;
           });
+          _startOtpCooldown(); // Start cooldown after successful send
           print("OTP successfully sent!");
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -98,9 +123,17 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
             _isSendingOtp = false;
           });
           print("Failed to send OTP. Server responded with ${response.body}");
+          // Try to extract error message from response
+          String errorMsg = 'Failed to send OTP. Try again.';
+          try {
+            final body = jsonDecode(response.body);
+            if (body['message'] != null) {
+              errorMsg = body['message'];
+            }
+          } catch (_) {}
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to send OTP. Try again.'),
+            SnackBar(
+              content: Text(errorMsg),
               backgroundColor: Colors.red,
             ),
           );
@@ -298,25 +331,30 @@ class _CreateAccountEmailScreenState extends State<CreateAccountEmailScreen> {
                       width: 120,
                     ),
                     CustomButton(
-                      text: _otpSent ? 'Resend OTP' : 'Send OTP',
-                      onPressed: _otpSent
-                          ? _sendOtp
-                          : () {
-                              print("Next button pressed");
-                              if (_formKey.currentState!.validate()) {
-                                print("Form validated successfully");
-                                // Save email to controller
-                                _registrationController.email.value =
-                                    _emailController.text.trim();
-                                print(
-                                    "Saved email: ${_registrationController.email.value}");
-
-                                // Send OTP instead of directly navigating
-                                _sendOtp();
-                              } else {
-                                print("Form validation failed");
-                              }
-                            },
+                      text: _otpSent
+                          ? (_otpCooldown > 0
+                              ? 'Resend OTP (${_otpCooldown}s)'
+                              : 'Resend OTP')
+                          : (_otpCooldown > 0
+                              ? 'Send OTP (${_otpCooldown}s)'
+                              : 'Send OTP'),
+                      onPressed: (_isSendingOtp || _otpCooldown > 0)
+                          ? null
+                          : (_otpSent
+                              ? _sendOtp
+                              : () {
+                                  print("Next button pressed");
+                                  if (_formKey.currentState!.validate()) {
+                                    print("Form validated successfully");
+                                    _registrationController.email.value =
+                                        _emailController.text.trim();
+                                    print(
+                                        "Saved email: ${_registrationController.email.value}");
+                                    _sendOtp();
+                                  } else {
+                                    print("Form validation failed");
+                                  }
+                                }),
                       width: 120,
                       isLoading: _isSendingOtp,
                     ),

@@ -113,15 +113,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   onTap: () => _selectDate(context),
                   child: AbsorbPointer(
                     child: CustomTextField(
-                      label: 'Date of Birth',
+                      label: 'Date of Birth (Optional)', // <-- Add (Optional) to label
                       hint: 'MM/DD/YYYY',
                       controller: _dobController,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          print("DOB validation failed");
-                          return 'Please select your date of birth';
-                        }
-                        // Add additional validation for date format if needed
+                        // Make DOB optional: no error if empty
                         return null;
                       },
                     ),
