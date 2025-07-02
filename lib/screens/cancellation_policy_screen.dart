@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class RefundPolicyScreen extends StatelessWidget {
-  const RefundPolicyScreen({super.key});
+class CancellationPolicyScreen extends StatelessWidget {
+  const CancellationPolicyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +12,7 @@ class RefundPolicyScreen extends StatelessWidget {
         elevation: 0,
         foregroundColor: Colors.white,
         title: const Text(
-          'Refund Policy',
+          'Cancellation Policy',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -48,7 +48,7 @@ class RefundPolicyScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Refund Policy',
+                'Cancellation Policy',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -67,40 +67,25 @@ class RefundPolicyScreen extends StatelessWidget {
               const Divider(color: Colors.blueGrey, thickness: 1),
               const SizedBox(height: 24),
               _buildPolicySection(
-                '1. Eligibility for Refunds',
-                'You may be eligible for a refund in the following cases:',
+                'No Refund Policy',
+                'Sky Techiez does not offer refunds for any services, including one-time services or subscription-based plans. Once a service is activated or delivered, the payment is considered final and non-refundable.',
+                [],
+              ),
+              _buildPolicySection(
+                'Subscription Cancellation',
+                'Customers may cancel their active subscription at any time.',
                 [
-                  'Service Non-Delivery: If Skytechiez cannot deliver the requested service',
-                  'Service Dissatisfaction: If unsatisfied with the service, report within 7 days of completion',
-                  'Duplicate or accidental payments',
+                  'Cancellations will stop future billing starting from the next cycle.',
+                  'Services will continue until the end of the current paid term.',
                 ],
               ),
               _buildPolicySection(
-                '2. Non-Refundable Services',
+                'Non-Refundable Circumstances',
                 'The following are not eligible for refunds:',
                 [
-                  'Fully completed services',
-                  'Subscription-based plans after the first 7 days',
-                  'Issues caused by pre-existing device conditions',
-                  'Services where the client provided incorrect information',
-                ],
-              ),
-              _buildPolicySection(
-                '3. Cancellation Policy',
-                'Our cancellation terms:',
-                [
-                  'One-time services can be canceled before they start for a full refund',
-                  'Subscription cancellations must be made before the next billing cycle',
-                  'Partial work completed may be subject to partial refunds',
-                ],
-              ),
-              _buildPolicySection(
-                '4. Refund Processing',
-                'Important processing information:',
-                [
-                  'Refunds are processed within 7-10 business days',
-                  'Processing time depends on your bank or payment provider',
-                  'Refunds will be issued to the original payment method',
+                  'Services that have been delivered or completed.',
+                  'Subscription plans after activation.',
+                  'Issues caused by pre-existing device problems or third-party interference.',
                 ],
               ),
               const SizedBox(height: 24),
@@ -115,7 +100,7 @@ class RefundPolicyScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Contact Our Support',
+                      'Need Help?',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -124,12 +109,10 @@ class RefundPolicyScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _buildContactItem(Icons.email, 'info@skytechiez.co'),
-                    _buildContactItem(Icons.phone, '+1 (307) 217-8790'),
-                    _buildContactItem(
-                        Icons.access_time, 'Mon-Fri, 9AM-5PM MST'),
+                    _buildContactItem(Icons.phone, '+1 (888) 785-8705'),
                     const SizedBox(height: 8),
                     const Text(
-                      'For any refund-related queries, please contact us using the information above.',
+                      'For cancellation requests or account-related queries, contact Sky Techiez Support.',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.white70,

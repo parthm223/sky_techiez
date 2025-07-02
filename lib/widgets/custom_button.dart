@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sky_techiez/theme/app_theme.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -25,33 +24,36 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     final buttonStyle = isOutlined
-        ? OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primaryBlue,
-            side: const BorderSide(color: AppColors.primaryBlue),
-            padding: padding ?? const EdgeInsets.symmetric(vertical: 16),
-            minimumSize: Size(width ?? double.infinity, 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+        ? theme.outlinedButtonTheme.style?.copyWith(
+            padding: WidgetStateProperty.all(
+              padding ?? const EdgeInsets.symmetric(vertical: 16)
+            ),
+            minimumSize: WidgetStateProperty.all(
+              Size(width ?? double.infinity, 48)
             ),
           )
-        : ElevatedButton.styleFrom(
-            backgroundColor: backgroundColor ?? AppColors.primaryBlue,
-            foregroundColor: AppColors.white,
-            padding: padding ?? const EdgeInsets.symmetric(vertical: 16),
-            minimumSize: Size(width ?? double.infinity, 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+        : theme.elevatedButtonTheme.style?.copyWith(
+            backgroundColor: WidgetStateProperty.all(
+              backgroundColor ?? theme.primaryColor
+            ),
+            padding: WidgetStateProperty.all(
+              padding ?? const EdgeInsets.symmetric(vertical: 16)
+            ),
+            minimumSize: WidgetStateProperty.all(
+              Size(width ?? double.infinity, 48)
             ),
           );
 
     // Show loading indicator if isLoading is true
     final child = isLoading
-        ? const SizedBox(
+        ? SizedBox(
             width: 24,
             height: 24,
             child: CircularProgressIndicator(
-              color: Colors.white,
+              color: isOutlined ? theme.primaryColor : Colors.white,
               strokeWidth: 2,
             ),
           )

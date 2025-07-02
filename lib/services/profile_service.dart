@@ -1,50 +1,64 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:get_storage/get_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:sky_techiez/models/profile_model.dart';
 import 'package:sky_techiez/widgets/session_string.dart';
 
 class ProfileService {
   static const String baseUrl = 'https://tech.skytechiez.co/api';
 
-  static Future<Map<String, dynamic>> getProfile() async {
+  static Future<ProfileModel?> getProfile() async {
     try {
-      var headers = {
-        'X-Requested-With': 'XMLHttpRequest',
-        'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
-      };
+      final token = GetStorage().read(tokenKey) ?? '';
+      if (token.isEmpty) {
+        print('Authentication token not found');
+        return null;
+      }
 
-      var request = http.MultipartRequest('GET', Uri.parse('$baseUrl/profile'));
-      request.headers
-          .addAll(headers.cast<String, String>()); // Explicit casting
+      print('Fetching profile from API...');
+      final response = await http.get(
+        Uri.parse('$baseUrl/profile'),
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Authorization': token,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      );
 
-      http.StreamedResponse response = await request.send();
-      var responseData = await response.stream.bytesToString();
+      print('Profile API Response Status: ${response.statusCode}');
+      print('Profile API Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final data = json.decode(responseData);
+        final responseData = jsonDecode(response.body);
+        final profileModel = ProfileModel.fromJson(responseData);
 
-        // Update stored user data if successful
-        if (data['success'] == true && data['data'] != null) {
-          GetStorage().write(userCollectionName, data['data']);
+        // Store user data in local storage for offline access
+        if (profileModel.user != null) {
+          GetStorage().write(userCollectionName, profileModel.user!.toJson());
+          print('Profile data saved to local storage');
         }
 
-        return {
-          'success': data['success'] ?? false,
-          'message': data['message'] ?? 'Profile fetched successfully',
-          'data': data['data'],
-        };
+        return profileModel;
       } else {
-        return {
-          'success': false,
-          'message': 'Failed to fetch profile: ${response.reasonPhrase}',
-        };
+        print('Failed to fetch profile: ${response.statusCode}');
+        return null;
       }
     } catch (e) {
-      print('Error fetching profile: $e');
-      return {
-        'success': false,
-        'message': 'Error: $e',
-      };
+      print('Error in ProfileService.getProfile: $e');
+      return null;
     }
+  }
+
+  static User? getUserFromStorage() {
+    try {
+      final storedData = GetStorage().read(userCollectionName);
+      if (storedData != null) {
+        return User.fromJson(storedData);
+      }
+    } catch (e) {
+      print('Error loading user from storage: $e');
+    }
+    return null;
   }
 }

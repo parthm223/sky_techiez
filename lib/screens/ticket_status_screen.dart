@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sky_techiez/models/ticket.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
+import 'package:sky_techiez/screens/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_details_screen.dart';
 import 'package:sky_techiez/services/appointment_service.dart';
 import 'package:sky_techiez/services/comment_service.dart';
@@ -23,8 +24,9 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
   Map<String, dynamic>? _latestAppointment;
   List<Ticket> _userTickets = [];
   bool _isLoading = true;
-  // ignore: unused_field
   bool _hasSubscription = false;
+  bool _isCheckingSubscription = true;
+
   @override
   void initState() {
     super.initState();
@@ -34,11 +36,27 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
   }
 
   Future<void> _checkSubscriptionStatus() async {
-    final hasSubscription = await SubscriptionService.hasActiveSubscription();
-    if (mounted) {
-      setState(() {
-        _hasSubscription = hasSubscription;
-      });
+    setState(() {
+      _isCheckingSubscription = true;
+    });
+
+    try {
+      final hasSubscription = await SubscriptionService.hasActiveSubscription();
+
+      if (mounted) {
+        setState(() {
+          _hasSubscription = hasSubscription;
+          _isCheckingSubscription = false;
+        });
+      }
+    } catch (e) {
+      print('Error checking subscription: $e');
+      if (mounted) {
+        setState(() {
+          _hasSubscription = false;
+          _isCheckingSubscription = false;
+        });
+      }
     }
   }
 
@@ -111,7 +129,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () async {
-                _loadUserTickets();
+                await _checkSubscriptionStatus();
               },
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -143,7 +161,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                     if (_userTickets.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Text(
-                        'Your Ticket',
+                        'Your Tickets',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -175,72 +193,76 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                     ],
 
                     const SizedBox(height: 24),
-                    // _hasSubscription
-                    // ?
-                    CustomButton(
-                      text: 'Create New Ticket',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CreateTicketScreen(),
-                          ),
-                        ).then((_) {
-                          // Refresh tickets when returning from create ticket screen
-                          _loadUserTickets();
-                        });
-                      },
-                    )
 
-                    //: Card(
-                    //     color: AppColors.cardBackground,
-                    //     child: Padding(
-                    //       padding: const EdgeInsets.all(16),
-                    //       child: Column(
-                    //         crossAxisAlignment: CrossAxisAlignment.center,
-                    //         children: [
-                    //           const Icon(
-                    //             Icons.subscriptions,
-                    //             color: Colors.amber,
-                    //             size: 48,
-                    //           ),
-                    //           const SizedBox(height: 16),
-                    //           const Text(
-                    //             'Subscription Required',
-                    //             style: TextStyle(
-                    //               fontSize: 18,
-                    //               fontWeight: FontWeight.bold,
-                    //               color: AppColors.white,
-                    //             ),
-                    //           ),
-                    //           const SizedBox(height: 8),
-                    //           const Text(
-                    //             'You need an active subscription to create support tickets.',
-                    //             textAlign: TextAlign.center,
-                    //             style: TextStyle(
-                    //               color: AppColors.grey,
-                    //             ),
-                    //           ),
-                    //           const SizedBox(height: 16),
-                    //           CustomButton(
-                    //             text: 'View Subscription Plans',
-                    //             onPressed: () {
-                    //               Navigator.push(
-                    //                 context,
-                    //                 MaterialPageRoute(
-                    //                   builder: (context) =>
-                    //                       const SubscriptionsScreen(),
-                    //                 ),
-                    //               ).then((_) {
-                    //                 // Refresh subscription status when returning
-                    //                 _checkSubscriptionStatus();
-                    //               });
-                    //             },
-                    //           ),
-                    //         ],
-                    //       ),
-                    //     ),
-                    //   ),
+                    // Create Ticket Section
+                    _isCheckingSubscription
+                        ? const Center(child: CircularProgressIndicator())
+                        : _hasSubscription
+                            ? CustomButton(
+                                text: 'Create New Ticket',
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const CreateTicketScreen(),
+                                    ),
+                                  ).then((_) {
+                                    // Refresh tickets when returning from create ticket screen
+                                    _loadUserTickets();
+                                  });
+                                },
+                              )
+                            : Card(
+                                color: AppColors.cardBackground,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.subscriptions,
+                                        color: Colors.amber,
+                                        size: 48,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'Subscription Required',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        'You need an active subscription to create support tickets.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: AppColors.grey,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      CustomButton(
+                                        text: 'View Subscription Plans',
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const SubscriptionsScreen(),
+                                            ),
+                                          ).then((_) {
+                                            // Refresh subscription status when returning
+                                            _checkSubscriptionStatus();
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                   ],
                 ),
               ),
@@ -248,6 +270,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
     );
   }
 
+  // ... rest of the widget methods remain the same as in your original code
   Widget _buildAppointmentCard(
     BuildContext context,
     String appointmentId,
@@ -574,8 +597,17 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.done),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TicketDetailsScreen(
+                                ticketData: detailsData,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.visibility),
                         label: const Text('View Details'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primaryBlue,

@@ -100,13 +100,9 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
             // Parse the ticket_progress array from the response
             if (responseData.containsKey('ticket_progress') &&
                 responseData['ticket_progress'] is List) {
-              // Get the progress items from API
-              List<String> progressItems =
+              // Get the progress items from API (keep duplicates, keep order)
+              _ticketProgress =
                   List<String>.from(responseData['ticket_progress']);
-
-              // Remove duplicates by converting to Set and back to List
-              // This ensures each status appears only once
-              _ticketProgress = progressItems.toSet().toList();
             } else {
               // Fallback to default progress items if API doesn't return expected format
               _ticketProgress = [
@@ -478,7 +474,6 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                                 for (int i = 0; i < _ticketProgress.length; i++)
                                   _buildProgressItem(
                                     _ticketProgress[i],
-                                    // Determine if this step is completed based on status
                                     _isProgressItemCompleted(i),
                                     isLast: i == _ticketProgress.length - 1,
                                   ),
@@ -725,12 +720,14 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
   }
 
 // Helper method to determine the current progress index based on status
+  // ignore: unused_element
   int _getCurrentProgressIndex(String status) {
     // Find the indices of specific progress items
     int newTicketIndex = _findProgressItemIndex('new ticket');
     int assignedIndex = _findProgressItemIndex('assigned');
     int pendingIndex = _findProgressItemIndex('pending');
     int inProgressIndex = _findProgressItemIndex('in progress');
+    // ignore: unused_local_variable
     int resolvedIndex = _findProgressItemIndex('resolved');
 
     // Determine current progress based on status

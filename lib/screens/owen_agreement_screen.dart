@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SkyTechiezAgreementScreen extends StatefulWidget {
   const SkyTechiezAgreementScreen({super.key});
@@ -9,15 +10,19 @@ class SkyTechiezAgreementScreen extends StatefulWidget {
 }
 
 class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
-  final TextEditingController _signatureController = TextEditingController();
-  bool _agreedToTerms = false;
   final _scrollController = ScrollController();
 
   @override
   void dispose() {
-    _signatureController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri)) {
+      throw Exception('Could not launch $url');
+    }
   }
 
   @override
@@ -41,15 +46,6 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
             ),
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _agreedToTerms && _signatureController.text.isNotEmpty
-                ? _saveAgreement
-                : null,
-            tooltip: 'Save Agreement',
-          ),
-        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -109,15 +105,10 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
                     const SizedBox(height: 24),
                     _buildDataProtectionSection(),
                     const SizedBox(height: 32),
-                    _buildSignatureField(),
-                    const SizedBox(height: 24),
-                    _buildTermsCheckbox(),
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
-            _buildSubmitButton(),
           ],
         ),
       ),
@@ -478,8 +469,28 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
         _buildAgreementText(
           'SkyTechiez LLC (Application) is committed to respecting the privacy of its customers.',
         ),
-        _buildAgreementText(
-          'For information on our privacy practices, please visit www.SkyTechiez.co or call +1 (307) 217-8790.',
+        GestureDetector(
+          onTap: () => _launchUrl('https://www.SkyTechiez.co'),
+          child: const Text(
+            'For information on our privacy practices, please visit www.SkyTechiez.co',
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.5,
+              color: Colors.blue,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () => _launchUrl('tel:+18887858705'),
+          child: const Text(
+            'or call +1(888)785-8705.',
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.5,
+              color: Colors.blue,
+            ),
+          ),
         ),
       ],
     );
@@ -521,7 +532,10 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
         ),
         const SizedBox(height: 8),
         _buildAgreementText(
-          'If you suspect that your SkyTechiez LLC (Application) Account or any of your security details have been compromised, or if you become aware of any fraud, attempted fraud, or any other security incident (including a cybersecurity attack) affecting you and/or SkyTechiez LLC (Application) (collectively referred to as a "Security Breach"), you must immediately notify SkyTechiez LLC (Application) Assistance at https://help.SkyTechiez.co or (307) 217-8790, providing accurate and up-to-date information for the duration of the Security Breach. Please take any reasonable steps we need to reduce or manage the Security Breach. Just to let you know, reporting a Security Breach does not guarantee reimbursement for any losses incurred or that SkyTechiez LLC (Application) will be liable for any losses resulting from the Security Breach.',
+          'If you suspect that your SkyTechiez LLC (Application) Account or any of your security details have been compromised, or if you become aware of any fraud, attempted fraud, or any other security incident (including a cybersecurity attack) affecting you and/or SkyTechiez LLC (Application) (collectively referred to as a "Security Breach"), you must immediately notify SkyTechiez LLC (Application) Assistance at ',
+        ),
+        _buildAgreementText(
+          ', providing accurate and up-to-date information for the duration of the Security Breach. Please take any reasonable steps we need to reduce or manage the Security Breach. Just to let you know, reporting a Security Breach does not guarantee reimbursement for any losses incurred or that SkyTechiez LLC (Application) will be liable for any losses resulting from the Security Breach.',
         ),
         const SizedBox(height: 16),
         _buildCompanyInfo(),
@@ -580,10 +594,10 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.blue.shade700),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'SkyTechiez LLC',
             style: TextStyle(
               fontSize: 18,
@@ -591,160 +605,37 @@ class _SkyTechiezAgreementScreenState extends State<SkyTechiezAgreementScreen> {
               color: Colors.blue,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
-            '1309 Coffeen Avenue STE 1200\nSheridan Wyoming 82801\n+1 (307) 217-8790\nwww.SkyTechiez.co',
+          const SizedBox(height: 8),
+          const Text(
+            '1309 Coffeen Avenue STE 1200\nSheridan Wyoming 82801',
             style: TextStyle(
               fontSize: 16,
               height: 1.5,
               color: Colors.white70,
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSignatureField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Customer Signature',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.blueAccent,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _signatureController,
-          decoration: InputDecoration(
-            hintText: 'Enter your full name as signature',
-            hintStyle: const TextStyle(color: Colors.white54),
-            filled: true,
-            fillColor: Colors.grey[900],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.blue, width: 2),
-            ),
-          ),
-          style: const TextStyle(color: Colors.white),
-          onChanged: (value) {
-            setState(() {});
-          },
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'By signing above, you acknowledge that you have read and agree to all terms and conditions outlined in this agreement.',
-          style: TextStyle(
-            fontSize: 14,
-            fontStyle: FontStyle.italic,
-            color: Colors.white70,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTermsCheckbox() {
-    return Row(
-      children: [
-        Checkbox(
-          value: _agreedToTerms,
-          onChanged: (value) {
-            setState(() {
-              _agreedToTerms = value ?? false;
-            });
-          },
-          fillColor: WidgetStateProperty.resolveWith<Color>((states) {
-            if (states.contains(WidgetState.selected)) {
-              return Colors.blue;
-            }
-            return Colors.grey.shade800;
-          }),
-        ),
-        const Expanded(
-          child: Text(
-            'I have read and agree to all terms and conditions outlined in this agreement',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSubmitButton() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade900, Colors.black],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _agreedToTerms && _signatureController.text.isNotEmpty
-              ? _saveAgreement
-              : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                _agreedToTerms && _signatureController.text.isNotEmpty
-                    ? Colors.blue
-                    : Colors.blue.shade800.withOpacity(0.5),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text(
-            'Submit Agreement',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _saveAgreement() {
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text(
-          'Agreement Submitted',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          'Thank you, ${_signatureController.text}, for agreeing to our terms. Your agreement has been successfully submitted.',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => _launchUrl('tel:+18887858705'),
             child: const Text(
-              'OK',
-              style: TextStyle(color: Colors.blue),
+              '+1 (888) 785-8705',
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.5,
+                color: Colors.blue,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => _launchUrl('https://www.SkyTechiez.co'),
+            child: const Text(
+              'www.SkyTechiez.co',
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.5,
+                color: Colors.blue,
+              ),
             ),
           ),
         ],

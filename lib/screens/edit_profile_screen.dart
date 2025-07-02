@@ -33,6 +33,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selfieImagePath;
   File? _selfieImageFile;
   bool _isLoading = false;
+  bool _isLoadingProfile = true;
   UserLogin _userDetail = UserLogin();
 
   @override
@@ -42,23 +43,97 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
+    setState(() {
+      _isLoadingProfile = true;
+    });
+
+    try {
+      // First try to fetch from API
+      await _fetchProfileFromAPI();
+    } catch (e) {
+      print('Failed to fetch from API: $e');
+      // Fallback to local storage if API fails
+      await _loadFromLocalStorage();
+    } finally {
+      setState(() {
+        _isLoadingProfile = false;
+      });
+    }
+  }
+
+  Future<void> _fetchProfileFromAPI() async {
+    final token = _storage.read(tokenKey) ?? '';
+    if (token.isEmpty) {
+      throw Exception('Authentication token not found');
+    }
+
+    final response = await http.get(
+      Uri.parse('https://tech.skytechiez.co/api/profile'),
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Authorization': token,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print('API Response Status: ${response.statusCode}');
+    print('API Response Body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final responseData = jsonDecode(response.body);
+
+      // Extract user data from the "user" key in the response
+      if (responseData['user'] != null) {
+        final userData = responseData['user'];
+
+        setState(() {
+          _userDetail = UserLogin.fromJson(userData);
+          _populateFormFields();
+        });
+
+        // Update local storage with fresh data
+        _storage.write(userCollectionName, userData);
+      } else {
+        throw Exception('User data not found in API response');
+      }
+    } else {
+      final errorData = jsonDecode(response.body);
+      throw Exception(errorData['message'] ??
+          'Failed to load profile: ${response.statusCode}');
+    }
+  }
+
+  Future<void> _loadFromLocalStorage() async {
     final storedData = _storage.read(userCollectionName);
     if (storedData != null) {
-      setState(() {
-        _userDetail = UserLogin.fromJson(storedData);
-        _firstNameController.text = _userDetail.firstName ?? '';
-        _lastNameController.text = _userDetail.lastName ?? '';
-        _emailController.text = _userDetail.email ?? '';
-        _mobileController.text = _userDetail.phone ?? '';
-        if (_userDetail.dob != null) {
-          try {
-            final parsedDate = DateFormat('yyyy-MM-dd').parse(_userDetail.dob!);
-            _dobController.text = DateFormat('MM-dd-yyyy').format(parsedDate);
-          } catch (e) {
-            _dobController.text = _userDetail.dob ?? '';
-          }
-        }
-      });
+      try {
+        setState(() {
+          _userDetail = UserLogin.fromJson(storedData);
+          _populateFormFields();
+        });
+      } catch (e) {
+        print('Error parsing stored data: $e');
+        setState(() {
+          _userDetail = UserLogin();
+        });
+      }
+    }
+  }
+
+  void _populateFormFields() {
+    _firstNameController.text = _userDetail.firstName ?? '';
+    _lastNameController.text = _userDetail.lastName ?? '';
+    _emailController.text = _userDetail.email ?? '';
+    _mobileController.text = _userDetail.phone ?? '';
+
+    if (_userDetail.dob != null) {
+      try {
+        final parsedDate = DateFormat('yyyy-MM-dd').parse(_userDetail.dob!);
+        _dobController.text = DateFormat('MM-dd-yyyy').format(parsedDate);
+      } catch (e) {
+        _dobController.text = _userDetail.dob ?? '';
+      }
     }
   }
 
@@ -112,7 +187,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onPrimary: Colors.white,
               surface: AppColors.darkBackground,
               onSurface: Colors.white,
-            ), dialogTheme: DialogThemeData(backgroundColor: AppColors.darkBackground),
+            ),
+            dialogTheme:
+                DialogThemeData(backgroundColor: AppColors.darkBackground),
           ),
           child: child!,
         );
@@ -139,10 +216,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         throw Exception('Authentication token not found');
       }
 
-      // Corrected headers declaration
       Map<String, String> headers = {
         'X-Requested-With': 'XMLHttpRequest',
-        'Authorization': GetStorage().read(tokenKey),
+        'Authorization': token,
         'Accept': 'application/json',
       };
 
@@ -151,7 +227,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Uri.parse('https://tech.skytechiez.co/api/update-profile'),
       );
 
-      // Add form fields
       request.fields.addAll({
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
@@ -160,7 +235,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'email': _emailController.text.trim(),
       });
 
-      // Attach profile image if available
       if (_selfieImageFile != null) {
         final file = await http.MultipartFile.fromPath(
           'profile_image',
@@ -176,9 +250,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final responseData = jsonDecode(responseBody);
 
       if (response.statusCode == 200) {
-        // Update user details in local storage
-        _storage.write(userCollectionName, responseData['data']);
-        await _loadUserData();
+        // Handle the response based on the API structure
+        if (responseData['user'] != null) {
+          _storage.write(userCollectionName, responseData['user']);
+        } else if (responseData['data'] != null) {
+          _storage.write(userCollectionName, responseData['data']);
+        }
+
+        await _loadUserData(); // Refresh data after update
 
         Get.snackbar(
           'Success',
@@ -215,182 +294,204 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         title: const Text('Edit Profile'),
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _isLoadingProfile ? null : _loadUserData,
+          ),
+        ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Profile Image Section
-                Center(
+        child: _isLoadingProfile
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primaryBlue,
+                ),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GestureDetector(
-                        onTap: _pickImage,
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: AppColors.lightGrey,
-                            borderRadius: BorderRadius.circular(60),
-                            border: Border.all(
-                                color: AppColors.primaryBlue, width: 2),
-                          ),
-                          child: _selfieImagePath != null
-                              ? ClipRRect(
+                      // Profile Image Section
+                      Center(
+                        child: Column(
+                          children: [
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: AppColors.lightGrey,
                                   borderRadius: BorderRadius.circular(60),
-                                  child: Image.file(
-                                    File(_selfieImagePath!),
-                                    width: 120,
-                                    height: 120,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                              : _userDetail.profileUrl != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(60),
-                                      child: Image.network(
-                                        _userDetail.profileUrl!,
-                                        width: 120,
-                                        height: 120,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return const Icon(
+                                  border: Border.all(
+                                      color: AppColors.primaryBlue, width: 2),
+                                ),
+                                child: _selfieImagePath != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(60),
+                                        child: Image.file(
+                                          File(_selfieImagePath!),
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                    : _userDetail.profileUrl != null
+                                        ? ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(60),
+                                            child: Image.network(
+                                              _userDetail.profileUrl!,
+                                              width: 120,
+                                              height: 120,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return const Icon(
+                                                  Icons.person,
+                                                  size: 60,
+                                                  color: AppColors.grey,
+                                                );
+                                              },
+                                            ),
+                                          )
+                                        : const Icon(
                                             Icons.person,
                                             size: 60,
                                             color: AppColors.grey,
-                                          );
-                                        },
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.person,
-                                      size: 60,
-                                      color: AppColors.grey,
-                                    ),
+                                          ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: _pickImage,
+                              icon: const Icon(Icons.camera_alt),
+                              label: const Text('Change Photo'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primaryBlue,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        onPressed: _pickImage,
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text('Change Photo'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primaryBlue,
+                      const SizedBox(height: 24),
+
+                      // Personal Information
+                      const Text(
+                        'Personal Information',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
                         ),
                       ),
+                      const SizedBox(height: 16),
+
+                      // Display Account ID (Read-only)
+                      if (_userDetail.accountId != null)
+                        _buildTextField(
+                          controller: TextEditingController(
+                              text: _userDetail.accountId),
+                          label: 'Account ID',
+                          readOnly: true,
+                        ),
+
+                      // First Name
+                      _buildTextField(
+                        controller: _firstNameController,
+                        label: 'First Name',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your first name';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      // Last Name
+                      _buildTextField(
+                        controller: _lastNameController,
+                        label: 'Last Name',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your last name';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      // Date of Birth
+                      GestureDetector(
+                        onTap: _selectDate,
+                        child: AbsorbPointer(
+                          child: _buildTextField(
+                            controller: _dobController,
+                            label: 'Date of Birth',
+                            suffixIcon: Icons.calendar_today,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select your date of birth';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ),
+
+                      // Email (Read-only)
+                      _buildTextField(
+                        readOnly: true,
+                        controller: _emailController,
+                        label: 'Email',
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          if (!GetUtils.isEmail(value)) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      // Mobile
+                      _buildTextField(
+                        controller: _mobileController,
+                        label: 'Mobile Number',
+                        keyboardType: TextInputType.phone,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your mobile number';
+                          }
+                          if (!GetUtils.isPhoneNumber(value)) {
+                            return 'Please enter a valid phone number';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Update Button
+                      _isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.primaryBlue))
+                          : CustomButton(
+                              text: 'Update Profile',
+                              onPressed: _updateProfile,
+                            ),
+
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 24),
-
-                // Personal Information
-                const Text(
-                  'Personal Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // First Name
-                _buildTextField(
-                  controller: _firstNameController,
-                  label: 'First Name',
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your first name';
-                    }
-                    return null;
-                  },
-                ),
-
-                // Last Name
-                _buildTextField(
-                  controller: _lastNameController,
-                  label: 'Last Name',
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your last name';
-                    }
-                    return null;
-                  },
-                ),
-
-                // Date of Birth
-                GestureDetector(
-                  onTap: _selectDate,
-                  child: AbsorbPointer(
-                    child: _buildTextField(
-                      controller: _dobController,
-                      label: 'Date of Birth',
-                      suffixIcon: Icons.calendar_today,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select your date of birth';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ),
-
-                // Email
-                _buildTextField(
-                  readOnly: true,
-                  controller: _emailController,
-                  label: 'Email',
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!GetUtils.isEmail(value)) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-
-                // Mobile
-                _buildTextField(
-                  controller: _mobileController,
-                  label: 'Mobile Number',
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your mobile number';
-                    }
-                    if (!GetUtils.isPhoneNumber(value)) {
-                      return 'Please enter a valid phone number';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 24),
-                // Update Button
-                _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                            color: AppColors.primaryBlue))
-                    : CustomButton(
-                        text: 'Update Profile',
-                        onPressed: _updateProfile,
-                      ),
-
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-        ),
+              ),
       ),
     );
   }

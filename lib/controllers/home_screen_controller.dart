@@ -26,8 +26,18 @@ class HomeController extends GetxController {
   }
 
   void loadUserData() {
-    userDetail.value =
-        UserLogin.fromJson(GetStorage().read(userCollectionName));
+    // Fix: Add null check before parsing JSON
+    final storedData = GetStorage().read(userCollectionName);
+    if (storedData != null) {
+      try {
+        userDetail.value = UserLogin.fromJson(storedData);
+      } catch (e) {
+        print('Error parsing user data: $e');
+        userDetail.value = UserLogin(); // Use empty user object as fallback
+      }
+    } else {
+      userDetail.value = UserLogin(); // Initialize with empty user object
+    }
   }
 
   Future<void> fetchNotifications() async {

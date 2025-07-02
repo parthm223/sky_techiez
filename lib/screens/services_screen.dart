@@ -91,13 +91,23 @@ class _ServicesScreenState extends State<ServicesScreen> {
       _isLoading = true;
     });
 
-    final hasSubscription = await SubscriptionService.hasActiveSubscription();
+    try {
+      final hasSubscription = await SubscriptionService.hasActiveSubscription();
 
-    if (mounted) {
-      setState(() {
-        _hasSubscription = hasSubscription;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _hasSubscription = hasSubscription;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error checking subscription: $e');
+      if (mounted) {
+        setState(() {
+          _hasSubscription = false;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -135,7 +145,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           return RefreshIndicator(
-            onRefresh: _fetchServices,
+            onRefresh: () async {
+              await _fetchServices();
+              await _checkSubscriptionStatus();
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
@@ -245,7 +258,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
                                                         builder: (context) =>
                                                             const CreateTicketScreen(),
                                                       ),
-                                                    );
+                                                    ).then((_) {
+                                                      // Refresh subscription status when returning
+                                                      _checkSubscriptionStatus();
+                                                    });
                                                   },
                                                 ),
                                               ),

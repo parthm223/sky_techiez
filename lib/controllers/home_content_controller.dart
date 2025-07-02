@@ -18,6 +18,7 @@ class HomeContentController extends GetxController with WidgetsBindingObserver {
   // Subscription state
   final hasSubscription = false.obs;
   final isCheckingSubscription = true.obs;
+  final subscriptionData = Rxn<Map<String, dynamic>>();
 
   // Toll-free number state
   final tollFreeNumber = '1-800-123-4567'.obs;
@@ -36,6 +37,14 @@ class HomeContentController extends GetxController with WidgetsBindingObserver {
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
     super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh subscription status when app comes back to foreground
+      checkSubscriptionStatus();
+    }
   }
 
   Future<void> fetchSettings() async {
@@ -94,8 +103,26 @@ class HomeContentController extends GetxController with WidgetsBindingObserver {
 
   Future<void> checkSubscriptionStatus() async {
     isCheckingSubscription.value = true;
-    hasSubscription.value = await SubscriptionService.hasActiveSubscription();
-    isCheckingSubscription.value = false;
+
+    try {
+      final isActive = await SubscriptionService.hasActiveSubscription();
+      final activeSubscription =
+          await SubscriptionService.getActiveSubscription();
+
+      hasSubscription.value = isActive;
+      subscriptionData.value = activeSubscription;
+
+      print('Subscription status checked: $isActive');
+      if (activeSubscription != null) {
+        print('Active subscription data: $activeSubscription');
+      }
+    } catch (e) {
+      print('Error checking subscription status: $e');
+      hasSubscription.value = false;
+      subscriptionData.value = null;
+    } finally {
+      isCheckingSubscription.value = false;
+    }
   }
 
   Future<void> loadLatestTicket() async {

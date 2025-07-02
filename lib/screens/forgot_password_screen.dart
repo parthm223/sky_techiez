@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sky_techiez/controllers/auth_controller.dart';
+// import 'package:sky_techiez/controllers/auth_controller.dart';
 import 'package:sky_techiez/services/auth_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
@@ -22,7 +22,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
-  final AuthController _authController = Get.find<AuthController>();
+  // final AuthController _authController = Get.find<AuthController>();
   bool _isLoading = false;
 
   @override

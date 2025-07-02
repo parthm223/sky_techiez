@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/controllers/auth_controller.dart';
-import 'package:sky_techiez/models/user_login.dart';
+import 'package:sky_techiez/controllers/theme_controller.dart';
+import 'package:sky_techiez/models/profile_model.dart';
+import 'package:sky_techiez/services/profile_service.dart';
 import 'package:sky_techiez/screens/profile_screen.dart';
 import 'package:sky_techiez/screens/services_screen.dart';
 import 'package:sky_techiez/screens/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_status_screen.dart';
-import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/services/notification_service.dart';
 import 'package:sky_techiez/models/notification_model.dart';
 import 'package:sky_techiez/widgets/notifications_drawer.dart';
-
 import '../widgets/session_string.dart';
 import 'home_content.dart';
 
@@ -23,19 +23,64 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  UserLogin userDetail = UserLogin();
+  User? userDetail;
   List<NotificationModel> notifications = [];
   bool isLoadingNotifications = false;
+  bool isLoadingProfile = true;
   int unreadCount = 0;
   int specialUnreadCount = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
-    userDetail = UserLogin.fromJson(GetStorage().read(userCollectionName));
     super.initState();
-    // Fetch notifications when the screen loads
+
+    // Initialize ThemeController if not already initialized
+    if (!Get.isRegistered<ThemeController>()) {
+      Get.put(ThemeController());
+    }
+
+    // Load user data and fetch fresh profile
+    _initializeUserData();
     _fetchNotifications();
+  }
+
+  Future<void> _initializeUserData() async {
+    setState(() {
+      isLoadingProfile = true;
+    });
+
+    // First load from storage for immediate display
+    _loadUserFromStorage();
+
+    // Then fetch fresh data from API
+    await _fetchProfileFromAPI();
+
+    setState(() {
+      isLoadingProfile = false;
+    });
+  }
+
+  void _loadUserFromStorage() {
+    final storedUser = ProfileService.getUserFromStorage();
+    if (storedUser != null) {
+      setState(() {
+        userDetail = storedUser;
+      });
+    }
+  }
+
+  Future<void> _fetchProfileFromAPI() async {
+    try {
+      final profileModel = await ProfileService.getProfile();
+      if (profileModel?.user != null) {
+        setState(() {
+          userDetail = profileModel!.user;
+        });
+      }
+    } catch (e) {
+      print('Error fetching profile: $e');
+    }
   }
 
   Future<void> _fetchNotifications() async {
@@ -63,6 +108,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Pull-to-refresh handler that refreshes both profile and notifications
+  Future<void> _onRefresh() async {
+    await Future.wait([
+      _fetchProfileFromAPI(),
+      _fetchNotifications(),
+    ]);
+  }
+
   Future<void> _markAsRead(int notificationId) async {
     final success = await NotificationService.markAsRead(notificationId);
     if (success) {
@@ -79,13 +132,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openNotificationsDrawer() {
-    // Close the main drawer if it's open
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       Navigator.pop(context);
     }
-
-    // Open the notifications drawer from the right
     _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  String _getUserDisplayName() {
+    if (userDetail?.fullName != null && userDetail!.fullName!.isNotEmpty) {
+      return userDetail!.fullName!;
+    } else if (userDetail?.firstName != null || userDetail?.lastName != null) {
+      return '${userDetail?.firstName ?? ''} ${userDetail?.lastName ?? ''}'
+          .trim();
+    }
+    return 'User Name';
   }
 
   int _selectedIndex = 0;
@@ -104,11 +164,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: const Text('Home', style: TextStyle(color: Colors.white)),
-        backgroundColor: AppColors.primaryBlue,
+        title: const Text('Home'),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          // Removed refresh button - now using pull-to-refresh
+
+          // Notifications button
           Stack(
             children: [
               IconButton(
@@ -148,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       drawer: Drawer(
         width: MediaQuery.of(context).size.width * 0.8,
-        backgroundColor: AppColors.darkBackground,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.horizontal(right: Radius.circular(20)),
         ),
@@ -164,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.only(
                         top: 50, left: 20, right: 20, bottom: 20),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withOpacity(0.2),
+                      color: Theme.of(context).primaryColor.withOpacity(0.2),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(20),
                         bottomRight: Radius.circular(20),
@@ -179,41 +240,60 @@ class _HomeScreenState extends State<HomeScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: AppColors.primaryBlue,
+                                  color: Theme.of(context).primaryColor,
                                   width: 2,
                                 ),
                               ),
-                              child: userDetail.profileUrl != null
+                              child: isLoadingProfile
                                   ? CircleAvatar(
                                       radius: 30,
-                                      backgroundImage:
-                                          NetworkImage(userDetail.profileUrl!),
-                                    )
-                                  : const CircleAvatar(
-                                      radius: 30,
-                                      backgroundColor: AppColors.white,
-                                      child: Icon(
-                                        Icons.person,
-                                        size: 35,
-                                        color: AppColors.primaryBlue,
+                                      backgroundColor:
+                                          Theme.of(context).cardColor,
+                                      child: const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
                                       ),
-                                    ),
+                                    )
+                                  : userDetail?.profileUrl != null
+                                      ? CircleAvatar(
+                                          radius: 30,
+                                          backgroundImage: NetworkImage(
+                                              userDetail!.profileUrl!),
+                                          onBackgroundImageError: (_, __) {
+                                            // Handle image load error
+                                          },
+                                        )
+                                      : CircleAvatar(
+                                          radius: 30,
+                                          backgroundColor:
+                                              Theme.of(context).cardColor,
+                                          child: Icon(
+                                            Icons.person,
+                                            size: 35,
+                                            color:
+                                                Theme.of(context).primaryColor,
+                                          ),
+                                        ),
                             ),
                             const SizedBox(width: 15),
                             Expanded(
-                              child: Text(
-                                // ignore: unnecessary_null_comparison
-                                userDetail != null
-                                    ? '${userDetail.firstName} ${userDetail.lastName}'
-                                    : 'User Name',
-                                style: const TextStyle(
-                                  color: AppColors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.visible,
-                                softWrap: true,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _getUserDisplayName(),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -270,23 +350,45 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
 
                   const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Divider(color: AppColors.grey, thickness: 0.5),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Divider(
+                        color: Theme.of(context).dividerColor, thickness: 0.5),
                   ),
                   const SizedBox(height: 10),
 
+                  // Settings Section
+                  Padding(
+                    padding: const EdgeInsets.only(left: 25, bottom: 10),
+                    child: Text(
+                      'SETTINGS',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                    ),
+                  ),
+
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.palette_outlined,
+                    title: 'Theme Settings',
+                    onTap: () => Get.toNamed('/themeSettings'),
+                  ),
+
+                  const SizedBox(height: 10),
+
                   // Support & Legal Section
-                  const Padding(
-                    padding: EdgeInsets.only(left: 25, bottom: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 25, bottom: 10),
                     child: Text(
                       'SUPPORT & LEGAL',
-                      style: TextStyle(
-                        color: AppColors.grey,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
                     ),
                   ),
 
@@ -299,8 +401,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildDrawerItem(
                     context,
                     icon: Icons.policy_outlined,
-                    title: 'Refund Policy',
-                    onTap: () => Get.toNamed('/refundPolicy'),
+                    title: 'Cancellation Policy',
+                    onTap: () => Get.toNamed('/cancellationPolicy'),
                   ),
                   _buildDrawerItem(
                     context,
@@ -331,12 +433,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.logout, size: 20),
                 label: const Text('Logout'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue.withOpacity(0.2),
-                  foregroundColor: AppColors.white,
+                  backgroundColor:
+                      Theme.of(context).primaryColor.withOpacity(0.2),
+                  foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: AppColors.primaryBlue),
+                    side: BorderSide(color: Theme.of(context).primaryColor),
                   ),
                 ),
                 onPressed: () {
@@ -359,7 +462,13 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: _fetchNotifications,
         isLoading: isLoadingNotifications,
       ),
-      body: _screens[_selectedIndex],
+      // Wrap the body with RefreshIndicator for pull-to-refresh functionality
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        color: Theme.of(context).primaryColor,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        child: _screens[_selectedIndex],
+      ),
       bottomNavigationBar: _buildBottomNavBar(),
     );
   }
@@ -378,7 +487,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       child: Material(
         color: isSelected
-            ? AppColors.primaryBlue.withOpacity(0.2)
+            ? Theme.of(context).primaryColor.withOpacity(0.2)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
@@ -397,27 +506,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icon(
                   isSelected ? activeIcon ?? icon : icon,
                   color: isSelected
-                      ? AppColors.primaryBlue
-                      : AppColors.white.withOpacity(0.8),
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).iconTheme.color?.withOpacity(0.8),
                   size: 24,
                 ),
                 const SizedBox(width: 15),
                 Text(
                   title,
-                  style: TextStyle(
-                    color: isSelected ? AppColors.primaryBlue : AppColors.white,
-                    fontSize: 16,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: isSelected
+                            ? Theme.of(context).primaryColor
+                            : Theme.of(context).textTheme.bodyLarge?.color,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
                 ),
                 const Spacer(),
                 if (isSelected)
                   Container(
                     width: 6,
                     height: 6,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryBlue,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -446,9 +556,10 @@ class _HomeScreenState extends State<HomeScreen> {
           currentIndex: _selectedIndex,
           onTap: (index) => setState(() => _selectedIndex = index),
           type: BottomNavigationBarType.fixed,
-          backgroundColor: AppColors.darkBackground,
-          selectedItemColor: AppColors.primaryBlue,
-          unselectedItemColor: AppColors.grey,
+          backgroundColor:
+              Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+          selectedItemColor: Theme.of(context).primaryColor,
+          unselectedItemColor: Theme.of(context).textTheme.bodySmall?.color,
           selectedLabelStyle: const TextStyle(fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           showUnselectedLabels: true,
@@ -462,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> {
               activeIcon: Container(
                 padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withOpacity(0.2),
+                  color: Theme.of(context).primaryColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.home_filled, size: 24),
@@ -477,7 +588,7 @@ class _HomeScreenState extends State<HomeScreen> {
               activeIcon: Container(
                 padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withOpacity(0.2),
+                  color: Theme.of(context).primaryColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.person, size: 24),
@@ -492,7 +603,7 @@ class _HomeScreenState extends State<HomeScreen> {
               activeIcon: Container(
                 padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withOpacity(0.2),
+                  color: Theme.of(context).primaryColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.subscriptions, size: 24),
@@ -508,7 +619,7 @@ class _HomeScreenState extends State<HomeScreen> {
               activeIcon: Container(
                 padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withOpacity(0.2),
+                  color: Theme.of(context).primaryColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.miscellaneous_services, size: 24),
@@ -523,7 +634,7 @@ class _HomeScreenState extends State<HomeScreen> {
               activeIcon: Container(
                 padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withOpacity(0.2),
+                  color: Theme.of(context).primaryColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.receipt, size: 24),
