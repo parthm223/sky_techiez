@@ -7,7 +7,7 @@ import 'package:sky_techiez/models/profile_model.dart';
 import 'package:sky_techiez/services/profile_service.dart';
 import 'package:sky_techiez/screens/profile_screen.dart';
 import 'package:sky_techiez/screens/services_screen.dart';
-import 'package:sky_techiez/screens/subscriptions_screen.dart';
+import 'package:sky_techiez/screens/payment/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_status_screen.dart';
 import 'package:sky_techiez/services/notification_service.dart';
 import 'package:sky_techiez/models/notification_model.dart';
@@ -158,17 +158,14 @@ class _HomeScreenState extends State<HomeScreen> {
     const TicketStatusScreen(),
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    Get.put(AuthController());
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
+  // Method to get AppBar based on selected index
+  PreferredSizeWidget? _getAppBar() {
+    // Only show AppBar for Home screen (index 0)
+    if (_selectedIndex == 0) {
+      return AppBar(
         title: const Text('Home'),
         elevation: 0,
         actions: [
-          // Removed refresh button - now using pull-to-refresh
-
           // Notifications button
           Stack(
             children: [
@@ -206,270 +203,270 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ],
+      );
+    }
+    // Return null for other screens to hide AppBar
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Get.put(AuthController());
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: _getAppBar(),
+      drawer: _selectedIndex == 0
+          ? _buildDrawer()
+          : null, // Only show drawer on Home screen
+      endDrawer: _selectedIndex == 0
+          ? NotificationsDrawer(
+              notifications: notifications,
+              onMarkAsRead: _markAsRead,
+              onRefresh: _fetchNotifications,
+              isLoading: isLoadingNotifications,
+            )
+          : null, // Only show notifications drawer on Home screenq
+      // Wrap the body with RefreshIndicator for pull-to-refresh functionality
+      body: _selectedIndex == 0
+          ? RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: Theme.of(context).primaryColor,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              child: _screens[_selectedIndex],
+            )
+          : _screens[_selectedIndex], // No refresh indicator for other screens
+      bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      width: MediaQuery.of(context).size.width * 0.8,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(20)),
       ),
-      drawer: Drawer(
-        width: MediaQuery.of(context).size.width * 0.8,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.horizontal(right: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  // Header with user info
-                  Container(
-                    padding: const EdgeInsets.only(
-                        top: 50, left: 20, right: 20, bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.2),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
-                      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              physics: const BouncingScrollPhysics(),
+              children: [
+                // Header with user info
+                Container(
+                  padding: const EdgeInsets.only(
+                      top: 50, left: 20, right: 20, bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.2),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Theme.of(context).primaryColor,
-                                  width: 2,
-                                ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(context).primaryColor,
+                                width: 2,
                               ),
-                              child: isLoadingProfile
-                                  ? CircleAvatar(
-                                      radius: 30,
-                                      backgroundColor:
-                                          Theme.of(context).cardColor,
-                                      child: const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
+                            ),
+                            child: isLoadingProfile
+                                ? CircleAvatar(
+                                    radius: 30,
+                                    backgroundColor:
+                                        Theme.of(context).cardColor,
+                                    child: const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    ),
+                                  )
+                                : userDetail?.profileUrl != null
+                                    ? CircleAvatar(
+                                        radius: 30,
+                                        backgroundImage: NetworkImage(
+                                            userDetail!.profileUrl!),
+                                        onBackgroundImageError: (_, __) {
+                                          // Handle image load error
+                                        },
+                                      )
+                                    : CircleAvatar(
+                                        radius: 30,
+                                        backgroundColor:
+                                            Theme.of(context).cardColor,
+                                        child: Icon(
+                                          Icons.person,
+                                          size: 35,
+                                          color: Theme.of(context).primaryColor,
+                                        ),
                                       ),
-                                    )
-                                  : userDetail?.profileUrl != null
-                                      ? CircleAvatar(
-                                          radius: 30,
-                                          backgroundImage: NetworkImage(
-                                              userDetail!.profileUrl!),
-                                          onBackgroundImageError: (_, __) {
-                                            // Handle image load error
-                                          },
-                                        )
-                                      : CircleAvatar(
-                                          radius: 30,
-                                          backgroundColor:
-                                              Theme.of(context).cardColor,
-                                          child: Icon(
-                                            Icons.person,
-                                            size: 35,
-                                            color:
-                                                Theme.of(context).primaryColor,
-                                          ),
-                                        ),
+                          ),
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _getUserDisplayName(),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 15),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _getUserDisplayName(),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: Image.asset(
+                          'assets/images/SkyLogo.png',
+                          height: 100,
+                          fit: BoxFit.contain,
                         ),
-                        const SizedBox(height: 10),
-                        Center(
-                          child: Image.asset(
-                            'assets/images/SkyLogo.png',
-                            height: 100,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Main Menu Items
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.home_outlined,
-                    activeIcon: Icons.home_filled,
-                    title: 'Home',
-                    index: 0,
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.person_outline,
-                    activeIcon: Icons.person,
-                    title: 'Profile',
-                    index: 1,
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.subscriptions_outlined,
-                    activeIcon: Icons.subscriptions,
-                    title: 'Subscriptions',
-                    index: 2,
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.miscellaneous_services_outlined,
-                    activeIcon: Icons.miscellaneous_services,
-                    title: 'Services',
-                    index: 3,
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.receipt_outlined,
-                    activeIcon: Icons.receipt,
-                    title: 'Ticket Status',
-                    index: 4,
-                  ),
-
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Divider(
-                        color: Theme.of(context).dividerColor, thickness: 0.5),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Settings Section
-                  Padding(
-                    padding: const EdgeInsets.only(left: 25, bottom: 10),
-                    child: Text(
-                      'SETTINGS',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                    ),
-                  ),
-
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.palette_outlined,
-                    title: 'Theme Settings',
-                    onTap: () => Get.toNamed('/themeSettings'),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Support & Legal Section
-                  Padding(
-                    padding: const EdgeInsets.only(left: 25, bottom: 10),
-                    child: Text(
-                      'SUPPORT & LEGAL',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                    ),
-                  ),
-
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.info_outline,
-                    title: 'About Us',
-                    onTap: () => Get.toNamed('/aboutUs'),
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.policy_outlined,
-                    title: 'Cancellation Policy',
-                    onTap: () => Get.toNamed('/cancellationPolicy'),
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy Policy',
-                    onTap: () => Get.toNamed('/privacyPolicy'),
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.description_outlined,
-                    title: 'Terms & Conditions',
-                    onTap: () => Get.toNamed('/termsConditions'),
-                  ),
-                  _buildDrawerItem(
-                    context,
-                    icon: Icons.gavel_outlined,
-                    title: 'Owen Agreement',
-                    onTap: () => Get.toNamed('/skyTechiezAgreement'),
-                  ),
-                ],
-              ),
-            ),
-
-            // Footer with logout button
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.logout, size: 20),
-                label: const Text('Logout'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Theme.of(context).primaryColor.withOpacity(0.2),
-                  foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Theme.of(context).primaryColor),
+                      ),
+                    ],
                   ),
                 ),
-                onPressed: () {
-                  // Clear user session
-                  GetStorage().remove(isLoginSession);
-                  GetStorage().remove(tokenKey);
-                  GetStorage().remove(userCollectionName);
 
-                  // Navigate to Login Screen
-                  Get.offAllNamed('/login');
-                },
-              ),
+                const SizedBox(height: 20),
+
+                // Main Menu Items
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_filled,
+                  title: 'Home',
+                  index: 0,
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.person_outline,
+                  activeIcon: Icons.person,
+                  title: 'Profile',
+                  index: 1,
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.subscriptions_outlined,
+                  activeIcon: Icons.subscriptions,
+                  title: 'Subscriptions',
+                  index: 2,
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.miscellaneous_services_outlined,
+                  activeIcon: Icons.miscellaneous_services,
+                  title: 'Services',
+                  index: 3,
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.receipt_outlined,
+                  activeIcon: Icons.receipt,
+                  title: 'Ticket Status',
+                  index: 4,
+                ),
+
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Divider(
+                      color: Theme.of(context).dividerColor, thickness: 0.5),
+                ),
+                const SizedBox(height: 10),
+
+                const SizedBox(height: 10),
+
+                // Support & Legal Section
+                Padding(
+                  padding: const EdgeInsets.only(left: 25, bottom: 10),
+                  child: Text(
+                    'SUPPORT & LEGAL',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                  ),
+                ),
+
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.info_outline,
+                  title: 'About Us',
+                  onTap: () => Get.toNamed('/aboutUs'),
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.policy_outlined,
+                  title: 'Cancellation Policy',
+                  onTap: () => Get.toNamed('/cancellationPolicy'),
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Privacy Policy',
+                  onTap: () => Get.toNamed('/privacyPolicy'),
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.description_outlined,
+                  title: 'Terms & Conditions',
+                  onTap: () => Get.toNamed('/termsConditions'),
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.gavel_outlined,
+                  title: 'Owen Agreement',
+                  onTap: () => Get.toNamed('/skyTechiezAgreement'),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // Footer with logout button
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.logout, size: 20),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    Theme.of(context).primaryColor.withOpacity(0.2),
+                foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Theme.of(context).primaryColor),
+                ),
+              ),
+              onPressed: () {
+                // Clear user session
+                GetStorage().remove(isLoginSession);
+                GetStorage().remove(tokenKey);
+                GetStorage().remove(userCollectionName);
+
+                // Navigate to Login Screen
+                Get.offAllNamed('/login');
+              },
+            ),
+          ),
+        ],
       ),
-      endDrawer: NotificationsDrawer(
-        notifications: notifications,
-        onMarkAsRead: _markAsRead,
-        onRefresh: _fetchNotifications,
-        isLoading: isLoadingNotifications,
-      ),
-      // Wrap the body with RefreshIndicator for pull-to-refresh functionality
-      body: RefreshIndicator(
-        onRefresh: _onRefresh,
-        color: Theme.of(context).primaryColor,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        child: _screens[_selectedIndex],
-      ),
-      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 

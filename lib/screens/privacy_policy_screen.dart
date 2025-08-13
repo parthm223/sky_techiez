@@ -1,7 +1,58 @@
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class PrivacyPolicyScreen extends StatelessWidget {
+class PrivacyPolicyScreen extends StatefulWidget {
   const PrivacyPolicyScreen({super.key});
+
+  @override
+  State<PrivacyPolicyScreen> createState() => _PrivacyPolicyScreenState();
+}
+
+class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
+  String? _tollFreeNumber;
+  String? _email;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      var headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Authorization': (GetStorage().read('tokenKey') ?? '').toString(),
+      };
+
+      var request = http.MultipartRequest(
+          'GET', Uri.parse('https://tech.skytechiez.co/api/settings'));
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        String responseBody = await response.stream.bytesToString();
+        Map<String, dynamic> responseData = jsonDecode(responseBody);
+
+        if (mounted && responseData.containsKey('settings')) {
+          setState(() {
+            for (var setting in responseData['settings']) {
+              if (setting['key'] == 'toll_free_number') {
+                _tollFreeNumber = setting['value'];
+              } else if (setting['key'] == 'email') {
+                _email = setting['value'];
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading settings: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,9 +197,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     _buildContactItem(
                         Icons.email,
                         'Email our Data Protection Officer',
-                        'privacy@skytechiez.co'),
+                        _email ?? 'privacy@skytechiez.co'),
                     _buildContactItem(Icons.phone, 'Call our Support Team',
-                        '+1 (307) 217-8790'),
+                        _tollFreeNumber ?? '+1 (307) 217-8790'),
                     const SizedBox(height: 8),
                     const Text(
                       'We take your privacy seriously and are committed to protecting your personal information.',

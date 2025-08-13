@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:sky_techiez/controllers/home_content_controller.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
 import 'package:sky_techiez/screens/services_screen.dart';
-import 'package:sky_techiez/screens/subscriptions_screen.dart';
+import 'package:sky_techiez/screens/payment/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_details_screen.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
@@ -15,96 +15,103 @@ class HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              const Text(
-                'Welcome To',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+    return RefreshIndicator(
+      onRefresh: () async {
+        await controller.loadLatestTicket();
+        await controller.checkSubscriptionStatus();
+        await controller.fetchSettings();
+      },
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                const Text(
+                  'Welcome To',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-              ),
-              Center(
-                child: Image.asset(
-                  'assets/images/SkyLogo.png',
-                  height: 100,
+                Center(
+                  child: Image.asset(
+                    'assets/images/SkyLogo.png',
+                    height: 100,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-
-          // Display latest ticket if available
-          Obx(() {
-            if (controller.latestTicket.value != null) {
-              return _buildLatestTicketCard(controller);
-            } else if (controller.isLoadingTicket.value) {
-              return _buildLoadingTicketCard();
-            }
-            return const SizedBox.shrink();
-          }),
-          const SizedBox(height: 24),
-
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            children: List.generate(2, (index) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      [Icons.computer, Icons.cloud][index],
-                      size: 42,
-                      color: AppColors.white,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      ['IT Services', 'Cloud Solutions'][index],
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'WHAT WE\'RE OFFERING',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.8,
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          _buildServicesList(),
-          const SizedBox(height: 16),
-          _buildHelpCard(),
-          const SizedBox(height: 16),
-          _buildTollFreeCard(),
-        ],
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 16),
+
+            // Display latest ticket if available
+            Obx(() {
+              if (controller.latestTicket.value != null) {
+                return _buildLatestTicketCard(controller);
+              } else if (controller.isLoadingTicket.value) {
+                return _buildLoadingTicketCard();
+              }
+              return const SizedBox.shrink();
+            }),
+            const SizedBox(height: 24),
+
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              children: List.generate(2, (index) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        [Icons.computer, Icons.cloud][index],
+                        size: 42,
+                        color: AppColors.white,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        ['IT Services', 'Cloud Solutions'][index],
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'WHAT WE\'RE OFFERING',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildServicesList(),
+            const SizedBox(height: 16),
+            _buildHelpCard(),
+            const SizedBox(height: 16),
+            _buildTollFreeCard(),
+          ],
+        ),
       ),
     );
   }
@@ -135,7 +142,7 @@ class HomeContent extends StatelessWidget {
               )
             ],
           ),
-          _buildTicketDetailRow('Subject:', ticket.subject),
+          _buildTicketDetailRow('User Name:', ticket.subject),
           _buildTicketDetailRow('Category:', ticket.categoryName),
           if (ticket.subcategoryName != null)
             _buildTicketDetailRow('Sub Category:', ticket.subcategoryName),

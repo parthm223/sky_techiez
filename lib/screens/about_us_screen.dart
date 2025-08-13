@@ -1,8 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class AboutUsScreen extends StatelessWidget {
+class AboutUsScreen extends StatefulWidget {
   const AboutUsScreen({super.key});
+
+  @override
+  State<AboutUsScreen> createState() => _AboutUsScreenState();
+}
+
+class _AboutUsScreenState extends State<AboutUsScreen> {
+  String? _tollFreeNumber;
+  String? _email;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      var headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Authorization': (GetStorage().read('tokenKey') ?? '').toString(),
+      };
+
+      var request = http.MultipartRequest(
+          'GET', Uri.parse('https://tech.skytechiez.co/api/settings'));
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        String responseBody = await response.stream.bytesToString();
+        Map<String, dynamic> responseData = jsonDecode(responseBody);
+
+        if (mounted && responseData.containsKey('settings')) {
+          setState(() {
+            for (var setting in responseData['settings']) {
+              if (setting['key'] == 'toll_free_number') {
+                _tollFreeNumber = setting['value'];
+              } else if (setting['key'] == 'email') {
+                _email = setting['value'];
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading settings: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,10 +197,10 @@ class AboutUsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildContactItem(
-                        Icons.phone, 'Call Us', '+1 (307) 217-8790'),
-                    _buildContactItem(
-                        Icons.email, 'Email Us', 'info@skytechiez.co'),
+                    _buildContactItem(Icons.phone, 'Call Us',
+                        _tollFreeNumber ?? '+1 (307) 217-8790'),
+                    _buildContactItem(Icons.email, 'Email Us',
+                        _email ?? 'info@skytechiez.co'),
                     _buildContactItem(Icons.access_time, 'Hours',
                         '24/7 Assistance Available'),
                     const SizedBox(height: 8),
@@ -308,4 +359,3 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 }
-//                 Expanded(

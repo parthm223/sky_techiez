@@ -5,7 +5,7 @@ import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart
 import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/models/service_model.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
-import 'package:sky_techiez/screens/subscriptions_screen.dart';
+import 'package:sky_techiez/screens/payment/subscriptions_screen.dart';
 import 'package:sky_techiez/services/service_api.dart';
 import 'package:sky_techiez/services/subscription_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';

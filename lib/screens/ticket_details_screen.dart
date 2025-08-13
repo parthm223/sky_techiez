@@ -433,53 +433,61 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
             controller: _tabController,
             children: [
               // PROGRESS Tab - Updated to use API data
+              // PROGRESS Tab
               Container(
                 color: AppColors.cardBackground,
-                child: _isLoadingProgress
-                    ? const Center(child: CircularProgressIndicator())
-                    : _hasProgressError
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.error_outline,
-                                  color: Colors.red,
-                                  size: 48,
-                                ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'Failed to load progress data',
-                                  style: TextStyle(
-                                    color: AppColors.grey,
-                                    fontSize: 16,
+                child: RefreshIndicator(
+                  onRefresh: _fetchTicketProgress,
+                  color: AppColors.primaryBlue,
+                  child: _isLoadingProgress
+                      ? const Center(child: CircularProgressIndicator())
+                      : _hasProgressError
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red,
+                                    size: 48,
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                ElevatedButton(
-                                  onPressed: _fetchTicketProgress,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primaryBlue,
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Failed to load progress data',
+                                    style: TextStyle(
+                                      color: AppColors.grey,
+                                      fontSize: 16,
+                                    ),
                                   ),
-                                  child: const Text('Retry'),
-                                ),
-                              ],
+                                  const SizedBox(height: 8),
+                                  ElevatedButton(
+                                    onPressed: _fetchTicketProgress,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryBlue,
+                                    ),
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                children: [
+                                  // Display progress items from API
+                                  for (int i = 0;
+                                      i < _ticketProgress.length;
+                                      i++)
+                                    _buildProgressItem(
+                                      _ticketProgress[i],
+                                      _isProgressItemCompleted(i),
+                                      isLast: i == _ticketProgress.length - 1,
+                                    ),
+                                ],
+                              ),
                             ),
-                          )
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              children: [
-                                // Display progress items from API
-                                for (int i = 0; i < _ticketProgress.length; i++)
-                                  _buildProgressItem(
-                                    _ticketProgress[i],
-                                    _isProgressItemCompleted(i),
-                                    isLast: i == _ticketProgress.length - 1,
-                                  ),
-                              ],
-                            ),
-                          ),
+                ),
               ),
 
               // COMMENTS Tab
@@ -547,115 +555,116 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
                           ],
                         ),
                       )
-                    : _isLoadingComments
-                        ? const Center(child: CircularProgressIndicator())
-                        : _hasCommentError
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.error_outline,
-                                      color: Colors.red,
-                                      size: 48,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'Failed to load comments',
-                                      style: TextStyle(
-                                        color: AppColors.grey,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    ElevatedButton(
-                                      onPressed: _fetchComments,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primaryBlue,
-                                      ),
-                                      child: const Text('Retry'),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : _comments.isEmpty
+                    : RefreshIndicator(
+                        onRefresh: _fetchComments,
+                        color: AppColors.primaryBlue,
+                        child: _isLoadingComments
+                            ? const Center(child: CircularProgressIndicator())
+                            : _hasCommentError
                                 ? Center(
                                     child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
                                         const Icon(
-                                          Icons.comment_outlined,
-                                          color: AppColors.grey,
+                                          Icons.error_outline,
+                                          color: Colors.red,
                                           size: 48,
                                         ),
                                         const SizedBox(height: 16),
                                         const Text(
-                                          'No comments yet',
+                                          'Failed to load comments',
                                           style: TextStyle(
                                             color: AppColors.grey,
                                             fontSize: 16,
                                           ),
                                         ),
                                         const SizedBox(height: 8),
-                                        TextButton(
-                                          onPressed: _toggleCommentField,
-                                          child: const Text(
-                                            'Add a comment',
-                                            style: TextStyle(
-                                              color: AppColors.primaryBlue,
-                                            ),
+                                        ElevatedButton(
+                                          onPressed: _fetchComments,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                AppColors.primaryBlue,
                                           ),
+                                          child: const Text('Retry'),
                                         ),
                                       ],
                                     ),
                                   )
-                                : RefreshIndicator(
-                                    onRefresh: _fetchComments,
-                                    color: AppColors.primaryBlue,
-                                    child: ListView.builder(
-                                      padding: const EdgeInsets.all(16),
-                                      itemCount: _comments.length + 1,
-                                      itemBuilder: (context, index) {
-                                        if (index == 0) {
-                                          // System comment
-                                          return _buildChatBubble(
-                                            'Support Team',
-                                            'Your ticket has been received. Our team will review it shortly.',
-                                            isUserComment: false,
-                                          );
-                                        }
-                                        final comment = _comments[index - 1];
-                                        final isUserComment = GetStorage()
-                                                .read(userCollectionName)["id"]
-                                                .toString() ==
-                                            comment['user_id'].toString();
-                                        return Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 16),
-                                          child: Align(
-                                            alignment: GetStorage()
-                                                        .read(userCollectionName)[
-                                                            "id"]
-                                                        .toString() ==
-                                                    comment['user_id']
-                                                        .toString()
-                                                ? Alignment.centerLeft
-                                                : Alignment.centerRight,
-                                            child: _buildChatBubble(
-                                              isUserComment
-                                                  ? 'You'
-                                                  : 'Support Team',
-                                              comment['comment'] ?? '',
-                                              isUserComment: isUserComment,
-                                              timestamp: comment['created_at'],
+                                : _comments.isEmpty
+                                    ? Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(
+                                              Icons.comment_outlined,
+                                              color: AppColors.grey,
+                                              size: 48,
                                             ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-              )
+                                            const SizedBox(height: 16),
+                                            const Text(
+                                              'No comments yet',
+                                              style: TextStyle(
+                                                color: AppColors.grey,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            TextButton(
+                                              onPressed: _toggleCommentField,
+                                              child: const Text(
+                                                'Add a comment',
+                                                style: TextStyle(
+                                                  color: AppColors.primaryBlue,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        physics:
+                                            const AlwaysScrollableScrollPhysics(),
+                                        padding: const EdgeInsets.all(16),
+                                        itemCount: _comments.length + 1,
+                                        itemBuilder: (context, index) {
+                                          if (index == 0) {
+                                            // System comment
+                                            return _buildChatBubble(
+                                              'Support Team',
+                                              'Your ticket has been received. Our team will review it shortly.',
+                                              isUserComment: false,
+                                            );
+                                          }
+                                          final comment = _comments[index - 1];
+                                          final isUserComment = GetStorage()
+                                                  .read(
+                                                      userCollectionName)["id"]
+                                                  .toString() ==
+                                              comment['user_id'].toString();
+                                          return Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 16),
+                                            child: Align(
+                                              alignment: isUserComment
+                                                  ? Alignment.centerLeft
+                                                  : Alignment.centerRight,
+                                              child: _buildChatBubble(
+                                                isUserComment
+                                                    ? 'You'
+                                                    : 'Support Team',
+                                                comment['comment'] ?? '',
+                                                isUserComment: isUserComment,
+                                                timestamp:
+                                                    comment['created_at'],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                      ),
+              ),
             ],
           ),
         ),
@@ -673,7 +682,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
   }
 
   // Modified helper method to determine if a progress item is completed
-  // Modified helper method to determine if a progress item is completed
+
   bool _isProgressItemCompleted(int index) {
     // Get the current status from ticket data
     final currentStatus = widget.ticketData['status']?.toLowerCase() ?? '';
@@ -964,7 +973,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen>
     String formattedTime = 'Just now';
     if (timestamp != null) {
       try {
-        final dateTime = DateTime.parse(timestamp);
+        final dateTime = DateTime.parse(timestamp);                                                                                                                   
         final now = DateTime.now();
         final difference = now.difference(dateTime);
 

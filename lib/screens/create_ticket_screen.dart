@@ -12,6 +12,7 @@ import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
 import 'package:sky_techiez/widgets/session_string.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CreateTicketScreen extends StatefulWidget {
   const CreateTicketScreen({super.key});
@@ -35,6 +36,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   File? _attachment;
   final ImagePicker _picker = ImagePicker();
   bool _isSubmitting = false;
+  bool _isCallingTNF = false;
 
   @override
   void initState() {
@@ -54,7 +56,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         'GET',
         Uri.parse('https://tech.skytechiez.co/api/ticket-category-dropdown'),
       );
-
       request.headers.addAll(headers);
       print('Sending categories request with headers: $headers');
 
@@ -77,15 +78,12 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
 
         String? selectedCategoryId = _getCategoryIdByName(_selectedCategory);
         print('Selected category ID: $selectedCategoryId');
-
         if (selectedCategoryId != null && mounted) {
           _fetchSubcategories(selectedCategoryId);
         }
       } else {
         print('Categories request failed: ${response.reasonPhrase}');
-
         if (!mounted) return; // Check if widget is still mounted
-
         setState(() {
           _isLoadingCategories = false;
           _categories = [
@@ -103,9 +101,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       }
     } catch (e) {
       print('Error fetching categories: $e');
-
       if (!mounted) return; // Check if widget is still mounted
-
       setState(() {
         _isLoadingCategories = false;
         _categories = [
@@ -125,7 +121,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
 
   Future<void> _fetchSubcategories(String categoryId) async {
     print('Fetching subcategories for category ID: $categoryId');
-
     if (!mounted) return; // Check if widget is still mounted
 
     setState(() {
@@ -145,7 +140,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
             'https://tech.skytechiez.co/api/get-subcategory-dropdown/$categoryId'),
       );
       request.headers.addAll(headers);
-
       print('Sending subcategories request with headers: $headers');
 
       http.StreamedResponse response = await request.send();
@@ -168,30 +162,132 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         });
       } else {
         print('Subcategories request failed: ${response.reasonPhrase}');
-
         if (!mounted) return; // Check if widget is still mounted
-
         setState(() {
           _isLoadingSubcategories = false;
         });
       }
     } catch (e) {
       print('Error fetching subcategories: $e');
-
       if (!mounted) return; // Check if widget is still mounted
-
       setState(() {
         _isLoadingSubcategories = false;
       });
     }
   }
 
-  final List<String> _priorities = [
-    'Low',
-    'Medium',
-    'High',
-    'Critical',
-  ];
+  // New method to fetch settings and get toll-free number
+  Future<void> _callTollFreeNumber() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isCallingTNF = true;
+    });
+
+    try {
+      var headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+      };
+
+      var request = http.MultipartRequest(
+          'GET', Uri.parse('https://tech.skytechiez.co/api/settings'));
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        final String responseBody = await response.stream.bytesToString();
+        print('Settings response: $responseBody');
+
+        final data = json.decode(responseBody);
+        final settings = data['settings'] as List;
+
+        // Find toll-free number from settings
+        String? tollFreeNumber;
+        for (var setting in settings) {
+          if (setting['key'] == 'toll_free_number') {
+            tollFreeNumber = setting['value'];
+            break;
+          }
+        }
+
+        if (tollFreeNumber != null && tollFreeNumber.isNotEmpty) {
+          await _makePhoneCall(tollFreeNumber);
+        } else {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Toll-free number not found'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        print('Settings request failed: ${response.reasonPhrase}');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Failed to get contact information: ${response.reasonPhrase}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error calling TNF: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCallingTNF = false;
+        });
+      }
+    }
+  }
+
+  // Method to make the actual phone call
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    try {
+      // Remove any formatting and keep only numbers and +
+      final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+      final Uri phoneUri = Uri(scheme: 'tel', path: cleanNumber);
+
+      if (await canLaunchUrl(phoneUri)) {
+        await launchUrl(phoneUri);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not launch phone dialer'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error making phone call: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error making call: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // final List<String> _priorities = [
+  //   'Low',
+  //   'Medium',
+  //   'High',
+  //   'Critical',
+  // ];
 
   @override
   void dispose() {
@@ -211,11 +307,10 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       print('Picking image...');
       final XFile? pickedFile =
           await _picker.pickImage(source: ImageSource.gallery);
+
       if (pickedFile != null) {
         print('Selected image: ${pickedFile.path}');
-
         if (!mounted) return; // Check if widget is still mounted
-
         setState(() {
           _attachment = File(pickedFile.path);
         });
@@ -224,9 +319,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       }
     } catch (e) {
       print('Image picker error: $e');
-
       if (!mounted) return; // Check if widget is still mounted
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to pick image: $e'),
@@ -251,7 +344,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       }
 
       print('Form validated, creating ticket...');
-
       if (!mounted) return; // Check if widget is still mounted
 
       setState(() {
@@ -375,9 +467,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         }
       } catch (e) {
         print('Ticket creation exception: $e');
-
         if (!mounted) return; // Check if widget is still mounted
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
@@ -420,92 +510,51 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       appBar: AppBar(
         title: const Text('Create Ticket'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Image.asset(
-                  'assets/images/SkyLogo.png',
-                  height: 120,
+      body: RefreshIndicator(
+        onRefresh: () {
+          _fetchCategories();
+          _selectedCategory = 'Other';
+          _selectedTechnicalSupportType = null;
+          _isLoadingCategories = true;
+          _isLoadingSubcategories = false;
+          _categories = [];
+          _subcategoriesMap = {};
+          _subjectController.clear();
+          _descriptionController.clear();
+          _attachment = null;
+          return Future.value();
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/SkyLogo.png',
+                    height: 120,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              CustomTextField(
-                label: 'Subject',
-                hint: 'Enter ticket subject',
-                controller: _subjectController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a subject';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Category',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGrey,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: _isLoadingCategories
-                          ? const Center(child: CircularProgressIndicator())
-                          : DropdownButton<String>(
-                              value: _selectedCategory,
-                              isExpanded: true,
-                              dropdownColor: AppColors.darkBackground,
-                              style: const TextStyle(color: AppColors.white),
-                              hint: const Text('Select Category'),
-                              items: _categories.map((String category) {
-                                return DropdownMenuItem<String>(
-                                  value: category,
-                                  child: Text(category),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  print('Category changed to: $newValue');
-                                  setState(() {
-                                    _selectedCategory = newValue;
-                                    String? categoryId =
-                                        _getCategoryIdByName(newValue);
-                                    if (categoryId != null) {
-                                      _fetchSubcategories(categoryId);
-                                    } else {
-                                      _selectedTechnicalSupportType = null;
-                                    }
-                                  });
-                                }
-                              },
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-              if (_subcategoriesMap.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                CustomTextField(
+                  label: 'Enter Name',
+                  hint: 'Enter Your Name',
+                  controller: _subjectController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a subject';
+                    }
+                    return null;
+                  },
+                ),
                 const SizedBox(height: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Support Type',
+                      'Category',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -520,26 +569,32 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: DropdownButtonHideUnderline(
-                        child: _isLoadingSubcategories
+                        child: _isLoadingCategories
                             ? const Center(child: CircularProgressIndicator())
                             : DropdownButton<String>(
-                                value: _selectedTechnicalSupportType,
+                                value: _selectedCategory,
                                 isExpanded: true,
                                 dropdownColor: AppColors.darkBackground,
                                 style: const TextStyle(color: AppColors.white),
-                                hint: const Text('Select Support Type'),
-                                items:
-                                    _subcategoriesMap.values.map((String type) {
+                                hint: const Text('Select Category'),
+                                items: _categories.map((String category) {
                                   return DropdownMenuItem<String>(
-                                    value: type,
-                                    child: Text(type),
+                                    value: category,
+                                    child: Text(category),
                                   );
                                 }).toList(),
                                 onChanged: (String? newValue) {
                                   if (newValue != null) {
-                                    print('Support Type changed to: $newValue');
+                                    print('Category changed to: $newValue');
                                     setState(() {
-                                      _selectedTechnicalSupportType = newValue;
+                                      _selectedCategory = newValue;
+                                      String? categoryId =
+                                          _getCategoryIdByName(newValue);
+                                      if (categoryId != null) {
+                                        _fetchSubcategories(categoryId);
+                                      } else {
+                                        _selectedTechnicalSupportType = null;
+                                      }
                                     });
                                   }
                                 },
@@ -548,154 +603,259 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     ),
                   ],
                 ),
-              ],
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Priority',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGrey,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedPriority,
-                        isExpanded: true,
-                        dropdownColor: AppColors.darkBackground,
-                        style: const TextStyle(color: AppColors.white),
-                        hint: const Text('Select Priority'),
-                        items: _priorities.map((String priority) {
-                          return DropdownMenuItem<String>(
-                            value: priority,
-                            child: Text(priority),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            print('Priority changed to: $newValue');
-                            setState(() {
-                              _selectedPriority = newValue;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Description',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _descriptionController,
-                    maxLines: 5,
-                    style: const TextStyle(color: AppColors.white),
-                    decoration: const InputDecoration(
-                      hintText: 'Describe your issue in detail',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a description';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Attachments',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGrey,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.grey,
-                          width: 1,
-                          style: BorderStyle.solid,
+                if (_subcategoriesMap.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Support Type',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.white,
                         ),
                       ),
-                      child: Column(
-                        children: [
-                          _attachment != null
-                              ? Image.file(
-                                  _attachment!,
-                                  height: 100,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                )
-                              : const Icon(
-                                  Icons.cloud_upload,
-                                  size: 48,
-                                  color: AppColors.grey,
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightGrey,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: _isLoadingSubcategories
+                              ? const Center(child: CircularProgressIndicator())
+                              : DropdownButton<String>(
+                                  value: _selectedTechnicalSupportType,
+                                  isExpanded: true,
+                                  dropdownColor: AppColors.darkBackground,
+                                  style:
+                                      const TextStyle(color: AppColors.white),
+                                  hint: const Text('Select Support Type'),
+                                  items: _subcategoriesMap.values
+                                      .map((String type) {
+                                    return DropdownMenuItem<String>(
+                                      value: type,
+                                      child: Text(type),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      print(
+                                          'Support Type changed to: $newValue');
+                                      setState(() {
+                                        _selectedTechnicalSupportType =
+                                            newValue;
+                                      });
+                                    }
+                                  },
                                 ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _attachment != null
-                                ? _attachment!.path.split('/').last
-                                : 'Drag and drop files here or click to browse',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppColors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          OutlinedButton(
-                            onPressed: _pickImage,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primaryBlue,
-                              side: const BorderSide(
-                                  color: AppColors.primaryBlue),
-                            ),
-                            child: const Text('Browse Files'),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                text: 'Submit Ticket',
-                onPressed: _isSubmitting ? null : _createTicket,
-                isLoading: _isSubmitting,
-              ),
-            ],
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // const Text(
+                    //   'Priority',
+                    //   style: TextStyle(
+                    //     fontSize: 14,
+                    //     fontWeight: FontWeight.w500,
+                    //     color: AppColors.white,
+                    //   ),
+                    // ),
+                    const SizedBox(height: 8),
+                    // Container(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 16),
+                    //   decoration: BoxDecoration(
+                    //     color: AppColors.lightGrey,
+                    //     borderRadius: BorderRadius.circular(8),
+                    //   ),
+                    //   child: DropdownButtonHideUnderline(
+                    //     child: DropdownButton<String>(
+                    //       value: _selectedPriority,
+                    //       isExpanded: true,
+                    //       dropdownColor: AppColors.darkBackground,
+                    //       style: const TextStyle(color: AppColors.white),
+                    //       hint: const Text('Select Priority'),
+                    //       items: _priorities.map((String priority) {
+                    //         return DropdownMenuItem<String>(
+                    //           value: priority,
+                    //           child: Text(priority),
+                    //         );
+                    //       }).toList(),
+                    //       onChanged: (String? newValue) {
+                    //         if (newValue != null) {
+                    //           print('Priority changed to: $newValue');
+                    //           setState(() {
+                    //             _selectedPriority = newValue;
+                    //           });
+                    //         }
+                    //       },
+                    //     ),
+                    //   ),
+                    // ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Description',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _descriptionController,
+                      maxLines: 5,
+                      style: const TextStyle(color: AppColors.white),
+                      decoration: const InputDecoration(
+                        hintText: 'Describe your issue in detail',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a description';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Attachments',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightGrey,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.grey,
+                            width: 1,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            _attachment != null
+                                ? Image.file(
+                                    _attachment!,
+                                    height: 100,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  )
+                                : const Icon(
+                                    Icons.cloud_upload,
+                                    size: 48,
+                                    color: AppColors.grey,
+                                  ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _attachment != null
+                                  ? _attachment!.path.split('/').last
+                                  : 'Drag and drop files here or click to browse',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            OutlinedButton(
+                              onPressed: _pickImage,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primaryBlue,
+                                side: const BorderSide(
+                                    color: AppColors.primaryBlue),
+                              ),
+                              child: const Text('Browse Files'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Updated button section with both Submit and Call buttons
+                Row(
+                  children: [
+                    // Submit Button
+                    Expanded(
+                      flex: 2,
+                      child: CustomButton(
+                        text: 'Submit Ticket',
+                        onPressed: _isSubmitting ? null : _createTicket,
+                        isLoading: _isSubmitting,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Call Button
+                    // Expanded(
+                    //   flex: 1,
+                    //   child: Container(
+                    //     height: 48, // Match the height of CustomButton
+                    //     child: ElevatedButton.icon(
+                    //       onPressed: _isCallingTNF ? null : _callTollFreeNumber,
+                    //       icon: _isCallingTNF
+                    //           ? const SizedBox(
+                    //               width: 16,
+                    //               height: 16,
+                    //               child: CircularProgressIndicator(
+                    //                 strokeWidth: 2,
+                    //                 valueColor: AlwaysStoppedAnimation<Color>(
+                    //                     Colors.white),
+                    //               ),
+                    //             )
+                    //           : const Icon(
+                    //               Icons.phone,
+                    //               size: 18,
+                    //               color: Colors.white,
+                    //             ),
+                    //       label: Text(
+                    //         _isCallingTNF ? 'Calling...' : 'Call',
+                    //         style: const TextStyle(
+                    //           color: Colors.white,
+                    //           fontSize: 14,
+                    //           fontWeight: FontWeight.w500,
+                    //         ),
+                    //       ),
+                    //       style: ElevatedButton.styleFrom(
+                    //         backgroundColor: Colors.green,
+                    //         disabledBackgroundColor:
+                    //             Colors.green.withOpacity(0.6),
+                    //         shape: RoundedRectangleBorder(
+                    //           borderRadius: BorderRadius.circular(8),
+                    //         ),
+                    //         elevation: 0,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

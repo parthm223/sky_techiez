@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sky_techiez/models/ticket.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
-import 'package:sky_techiez/screens/subscriptions_screen.dart';
+import 'package:sky_techiez/screens/payment/subscriptions_screen.dart';
 import 'package:sky_techiez/screens/ticket_details_screen.dart';
 import 'package:sky_techiez/services/appointment_service.dart';
 import 'package:sky_techiez/services/comment_service.dart';
@@ -12,6 +12,8 @@ import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/widgets/session_string.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 
 class TicketStatusScreen extends StatefulWidget {
   const TicketStatusScreen({super.key});
@@ -26,19 +28,81 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
   bool _isLoading = true;
   bool _hasSubscription = false;
   bool _isCheckingSubscription = true;
+  String? _tollFreeNumber;
+  String? _email;
 
   @override
   void initState() {
     super.initState();
-    _loadAppointmentDetails();
-    _loadUserTickets();
-    _checkSubscriptionStatus();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    await Future.wait([
+      _loadAppointmentDetails(),
+      _loadUserTickets(),
+      _checkSubscriptionStatus(),
+      _loadSettings(),
+    ]);
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      var headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Authorization': (GetStorage().read(tokenKey) ?? '').toString(),
+      };
+
+      var request = http.MultipartRequest(
+          'GET', Uri.parse('https://tech.skytechiez.co/api/settings'));
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        String responseBody = await response.stream.bytesToString();
+        Map<String, dynamic> responseData = jsonDecode(responseBody);
+
+        if (mounted && responseData.containsKey('settings')) {
+          setState(() {
+            for (var setting in responseData['settings']) {
+              if (setting['key'] == 'toll_free_number') {
+                _tollFreeNumber = setting['value'];
+              } else if (setting['key'] == 'email') {
+                _email = setting['value'];
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading settings: $e');
+    }
+  }
+
+  void _makePhoneCall() {
+    if (_tollFreeNumber != null && _tollFreeNumber!.isNotEmpty) {
+      final uri = Uri.parse('tel:$_tollFreeNumber');
+      launchUrl(uri);
+    }
   }
 
   Future<void> _checkSubscriptionStatus() async {
-    setState(() {
-      _isCheckingSubscription = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isCheckingSubscription = true;
+      });
+    }
 
     try {
       final hasSubscription = await SubscriptionService.hasActiveSubscription();
@@ -60,61 +124,33 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
     }
   }
 
-  void _loadAppointmentDetails() {
+  Future<void> _loadAppointmentDetails() async {
     final appointmentData = AppointmentService.getAppointment();
     if (appointmentData != null && mounted) {
       setState(() {
         _latestAppointment = appointmentData;
-        print("_latestAppointment ====================> $_latestAppointment");
       });
     }
   }
 
-  void _loadUserTickets() async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
+  Future<void> _loadUserTickets() async {
     try {
-      // First try to fetch from API
       final apiTickets = await TicketService.fetchTicketsFromApi();
 
       if (!mounted) return;
 
-      // This check is already here, which is good
       setState(() {
         _userTickets = apiTickets;
-        // If no tickets from API, fall back to local tickets
         if (_userTickets.isEmpty) {
           _userTickets = TicketService.getAllTickets();
         }
-        _isLoading = false;
       });
-
-      // Debug logging for subcategories
-      if (mounted) {
-        // Add this check here
-        for (var ticket in _userTickets) {
-          if (ticket.subcategoryName != null) {
-            print(
-                'Ticket ${ticket.id} has subcategory: ${ticket.subcategoryName}');
-          } else {
-            print('Ticket ${ticket.id} has no subcategory name');
-          }
-        }
-      }
-
-      print('Loaded ${_userTickets.length} tickets');
     } catch (e) {
       print('Error loading tickets: $e');
-      // Fall back to local tickets if API fails
       if (!mounted) return;
 
       setState(() {
         _userTickets = TicketService.getAllTickets();
-        _isLoading = false;
       });
     }
   }
@@ -128,10 +164,9 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: () async {
-                await _checkSubscriptionStatus();
-              },
+              onRefresh: _loadData,
               child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,8 +178,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Display appointment as a ticket if available
                     if (_latestAppointment != null)
                       _buildAppointmentCard(
                         context,
@@ -156,8 +189,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                         _latestAppointment!['issue'] ?? 'N/A',
                         true,
                       ),
-
-                    // Display user created tickets
                     if (_userTickets.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Text(
@@ -191,10 +222,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                         );
                       }),
                     ],
-
                     const SizedBox(height: 24),
-
-                    // Create Ticket Section
                     _isCheckingSubscription
                         ? const Center(child: CircularProgressIndicator())
                         : _hasSubscription
@@ -208,7 +236,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                                           const CreateTicketScreen(),
                                     ),
                                   ).then((_) {
-                                    // Refresh tickets when returning from create ticket screen
                                     _loadUserTickets();
                                   });
                                 },
@@ -254,7 +281,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                                                   const SubscriptionsScreen(),
                                             ),
                                           ).then((_) {
-                                            // Refresh subscription status when returning
                                             _checkSubscriptionStatus();
                                           });
                                         },
@@ -270,7 +296,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
     );
   }
 
-  // ... rest of the widget methods remain the same as in your original code
   Widget _buildAppointmentCard(
     BuildContext context,
     String appointmentId,
@@ -283,7 +308,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
   ) {
     return GestureDetector(
       onTap: () {
-        // Navigate to appointment details screen when tapped
         if (_latestAppointment != null) {
           Navigator.push(
             context,
@@ -320,21 +344,38 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                       color: AppColors.primaryBlue,
                     ),
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      status,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                  Row(
+                    children: [
+                      if (_tollFreeNumber != null)
+                        Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          child: IconButton(
+                            onPressed: _makePhoneCall,
+                            icon: const Icon(Icons.phone),
+                            iconSize: 20,
+                            color: AppColors.primaryBlue,
+                            tooltip: 'Call Support: $_tollFreeNumber',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          status,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -414,7 +455,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                   ),
                 ],
               ),
-              // View Details Button
               const SizedBox(height: 10),
               Center(
                 child: TextButton.icon(
@@ -470,7 +510,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
       statusColor = Colors.grey;
     }
 
-    // Prepare ticket data for details screen
     final Map<String, dynamic> detailsData = ticketData ??
         {
           'subject': subject,
@@ -484,7 +523,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
 
     return GestureDetector(
       onTap: () {
-        // Navigate to ticket details screen when tapped
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -519,21 +557,38 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                       color: AppColors.primaryBlue,
                     ),
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor,
+                  Row(
+                    children: [
+                      if (_tollFreeNumber != null)
+                        Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          child: IconButton(
+                            onPressed: _makePhoneCall,
+                            icon: const Icon(Icons.phone),
+                            iconSize: 20,
+                            color: AppColors.primaryBlue,
+                            tooltip: 'Call Support: $_tollFreeNumber',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -619,14 +674,10 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () async {
-                            // Store a reference to the current context
                             final currentContext = context;
-
-                            // Show comment dialog before closing ticket
                             final TextEditingController commentController =
                                 TextEditingController();
 
-                            // Check if widget is still mounted before showing dialog
                             if (!mounted) return;
 
                             await showDialog(
@@ -671,8 +722,7 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                                   actions: [
                                     TextButton(
                                       onPressed: () {
-                                        Navigator.of(dialogContext)
-                                            .pop(); // Close dialog
+                                        Navigator.of(dialogContext).pop();
                                       },
                                       child: const Text('Cancel',
                                           style:
@@ -680,9 +730,8 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                                     ),
                                     ElevatedButton(
                                       onPressed: () {
-                                        Navigator.of(dialogContext).pop(
-                                            commentController
-                                                .text); // Close dialog and return comment
+                                        Navigator.of(dialogContext)
+                                            .pop(commentController.text);
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppColors.primaryBlue,
@@ -693,10 +742,8 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                                 );
                               },
                             ).then((comment) async {
-                              // Check if widget is still mounted and comment is not null
                               if (!mounted || comment == null) return;
 
-                              // Show loading indicator
                               ScaffoldMessenger.of(currentContext).showSnackBar(
                                 const SnackBar(
                                   content: Text('Processing...'),
@@ -705,16 +752,13 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                               );
 
                               try {
-                                // First add the comment
                                 if (comment.isNotEmpty) {
                                   await CommentService.addComment(
                                       id.toString(), comment);
                                 }
 
-                                // Check if widget is still mounted
                                 if (!mounted) return;
 
-                                // Then close the ticket
                                 var headers = {
                                   'X-Requested-With': 'XMLHttpRequest',
                                   'Authorization':
@@ -729,7 +773,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                                 http.StreamedResponse response =
                                     await request.send();
 
-                                // Check if widget is still mounted
                                 if (!mounted) return;
 
                                 if (response.statusCode == 200) {
@@ -742,7 +785,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                                       backgroundColor: Colors.green,
                                     ),
                                   );
-                                  // Reload tickets to reflect the status change
                                   _loadUserTickets();
                                 } else {
                                   print(response.reasonPhrase);
@@ -755,7 +797,6 @@ class _TicketStatusScreenState extends State<TicketStatusScreen> {
                                   );
                                 }
                               } catch (e) {
-                                // Check if widget is still mounted
                                 if (!mounted) return;
 
                                 print('Error processing ticket: $e');
