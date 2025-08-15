@@ -27,7 +27,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   final _descriptionController = TextEditingController();
   String _selectedCategory = 'Other';
   String? _selectedTechnicalSupportType;
-  String _selectedPriority = 'Medium';
+  final String _selectedPriority = 'Medium';
   Map<String, String> _categoriesMap = {};
   List<String> _categories = [];
   bool _isLoadingCategories = true;
