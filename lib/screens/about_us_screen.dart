@@ -198,7 +198,7 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildContactItem(Icons.phone, 'Call Us',
-                        _tollFreeNumber ?? '+1 (307) 217-8790'),
+                        _tollFreeNumber ?? '+1(888)785-8705'),
                     _buildContactItem(Icons.email, 'Email Us',
                         _email ?? 'info@skytechiez.co'),
                     _buildContactItem(Icons.access_time, 'Hours',

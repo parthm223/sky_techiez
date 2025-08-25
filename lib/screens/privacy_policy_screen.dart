@@ -199,7 +199,7 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                         'Email our Data Protection Officer',
                         _email ?? 'privacy@skytechiez.co'),
                     _buildContactItem(Icons.phone, 'Call our Support Team',
-                        _tollFreeNumber ?? '+1 (307) 217-8790'),
+                        _tollFreeNumber ?? '+1(888)785-8705'),
                     const SizedBox(height: 8),
                     const Text(
                       'We take your privacy seriously and are committed to protecting your personal information.',

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
 import 'package:sky_techiez/screens/payment/payment_details_screen.dart';
 import 'package:sky_techiez/screens/payment/subscription_history_screen.dart';
 import 'package:sky_techiez/services/subscription_service.dart';
+import 'package:sky_techiez/widgets/session_string.dart';
 
 class SubscriptionsScreen extends StatefulWidget {
   const SubscriptionsScreen({super.key});
@@ -20,6 +23,46 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
   bool _hasActiveSubscription = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  bool _isLoggedIn = false;
+
+  final List<Map<String, dynamic>> _staticPlans = [
+    {
+      'id': 1,
+      'name': 'Premium Plan',
+      'description':
+          'With our premium services you can access all the features where our dedicated team will help and assist you 24/7 suppo...',
+      'price': 158,
+      'duration': 4,
+      'isPopular': true,
+    },
+    {
+      'id': 2,
+      'name': 'Standard Plan',
+      'description':
+          'With our Standard Plan services you can access all the features where our dedicated team will help and assist you...',
+      'price': 72,
+      'duration': 3,
+      'isPopular': false,
+    },
+    {
+      'id': 3,
+      'name': 'Basic Plan',
+      'description':
+          'With our Basic Plan services you can access all the features where our dedicated team will help and assist you 24/7 suppo...',
+      'price': 30,
+      'duration': 1,
+      'isPopular': false,
+    },
+    {
+      'id': 4,
+      'name': 'Deluxe Plan',
+      'description':
+          'With our Deluxe services you can access all the features where our dedicated team will help and assist you 24/7 suppo...',
+      'price': 260,
+      'duration': 12,
+      'isPopular': false,
+    },
+  ];
 
   @override
   void initState() {
@@ -31,7 +74,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    _loadAllData();
+    _checkAuthAndLoadData();
   }
 
   @override
@@ -40,7 +83,26 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
     super.dispose();
   }
 
+  Future<void> _checkAuthAndLoadData() async {
+    setState(() {
+      _isLoggedIn = GetStorage().hasData(isLoginSession);
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    if (_isLoggedIn) {
+      await _loadAllData();
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+      _animationController.forward();
+    }
+  }
+
   Future<void> _loadAllData() async {
+    if (!_isLoggedIn) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -72,7 +134,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
 
   Future<void> _refreshData() async {
     _animationController.reset();
-    await _loadAllData();
+    await _checkAuthAndLoadData();
   }
 
   @override
@@ -165,8 +227,12 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
           child: Column(
             children: [
               _buildHeader(),
-              _buildCurrentSubscriptionSection(),
-              _buildAvailablePlansSection(),
+              if (_isLoggedIn) ...[
+                _buildCurrentSubscriptionSection(),
+                _buildAvailablePlansSection(),
+              ] else ...[
+                _buildStaticPlansSection(),
+              ],
               const SizedBox(height: 32),
             ],
           ),
@@ -364,17 +430,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
                   const Color(0xFF4B5563),
                 ],
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: (_hasActiveSubscription
-                    ? const Color(0xFF10B981)
-                    : Colors.black)
-                .withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -604,6 +659,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
   }
 
   Widget _buildAvailablePlansSection() {
+    if (!_isLoggedIn) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.all(16),
       child: Column(
@@ -633,6 +690,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
   }
 
   Widget _buildSubscriptionPlans() {
+    if (!_isLoggedIn) return const SizedBox.shrink();
+
     List<Map<String, dynamic>> plansToDisplay = [];
 
     if (_hasActiveSubscription && _subscriptionData != null) {
@@ -702,8 +761,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
         _subscriptionData != null &&
         _subscriptionData!['subscriptions']['plan_id'] == planId;
     bool isPlanActive = status == 1;
-    // isPopular will only be true for the second plan if all plans are displayed.
-    // If only one plan (the current one) is displayed, its index will be 0, so isPopular will be false.
     bool isPopular = index == 1 && !_hasActiveSubscription;
 
     return Container(
@@ -897,6 +954,200 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStaticPlansSection() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Available Plans',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Sign in to subscribe to our premium plans',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildStaticSubscriptionPlans(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStaticSubscriptionPlans() {
+    return Column(
+      children: _staticPlans.asMap().entries.map<Widget>((entry) {
+        final index = entry.key;
+        final plan = entry.value;
+        return AnimatedContainer(
+          duration: Duration(milliseconds: 200 + (index * 100)),
+          margin: const EdgeInsets.only(bottom: 12),
+          child: _buildStaticSubscriptionPlan(plan, index),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildStaticSubscriptionPlan(Map<String, dynamic> plan, int index) {
+    final name = plan['name'] ?? 'Unknown Plan';
+    final price = plan['price'] ?? 0;
+    final description = plan['description'] ?? 'No description available';
+    final duration = plan['duration'] ?? 0;
+    final isPopular = plan['isPopular'] ?? false;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1E293B), Color(0xFF334155)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: isPopular
+            ? Border.all(color: const Color(0xFF3B82F6), width: 2)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: (isPopular ? const Color(0xFF3B82F6) : Colors.black)
+                .withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          if (isPopular)
+            Positioned(
+              top: -1,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'MOST POPULAR',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          Padding(
+            padding: EdgeInsets.all(isPopular ? 20 : 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isPopular) const SizedBox(height: 8),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.8),
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '\$$price',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '/ $duration Month${duration > 1 ? 's' : ''}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.7),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildAuthenticationButtons(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthenticationButtons() {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: _buildGradientButton(
+            text: 'Login to Subscribe',
+            icon: Icons.login_rounded,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+            ),
+            onPressed: () {
+              Get.toNamed('/login');
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: _buildOutlinedButton(
+            text: 'Create Account',
+            icon: Icons.person_add_rounded,
+            onPressed: () {
+              Get.toNamed('/register');
+            },
+          ),
+        ),
+      ],
     );
   }
 

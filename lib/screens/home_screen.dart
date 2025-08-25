@@ -225,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onRefresh: _fetchNotifications,
               isLoading: isLoadingNotifications,
             )
-          : null, // Only show notifications drawer on Home screenq
+          : null, // Only show notifications drawer on Home screen
       // Wrap the body with RefreshIndicator for pull-to-refresh functionality
       body: _selectedIndex == 0
           ? RefreshIndicator(
@@ -240,6 +240,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDrawer() {
+    final isLoggedIn = GetStorage().hasData(isLoginSession);
+
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.8,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -289,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           strokeWidth: 2),
                                     ),
                                   )
-                                : userDetail?.profileUrl != null
+                                : (isLoggedIn && userDetail?.profileUrl != null)
                                     ? CircleAvatar(
                                         radius: 30,
                                         backgroundImage: NetworkImage(
@@ -315,7 +317,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _getUserDisplayName(),
+                                  isLoggedIn
+                                      ? _getUserDisplayName()
+                                      : 'Guest User',
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleLarge
@@ -344,7 +348,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // Main Menu Items
+                if (!isLoggedIn) ...[
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.login_outlined,
+                    activeIcon: Icons.login,
+                    title: 'Login',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Get.toNamed('/login');
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.person_add_outlined,
+                    activeIcon: Icons.person_add,
+                    title: 'Create New Account',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Get.toNamed('/register');
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Divider(
+                        color: Theme.of(context).dividerColor, thickness: 0.5),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
+                // Main Menu Items (always visible)
                 _buildDrawerItem(
                   context,
                   icon: Icons.home_outlined,
@@ -352,34 +386,58 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: 'Home',
                   index: 0,
                 ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
-                  title: 'Profile',
-                  index: 1,
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.subscriptions_outlined,
-                  activeIcon: Icons.subscriptions,
-                  title: 'Subscriptions',
-                  index: 2,
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.miscellaneous_services_outlined,
-                  activeIcon: Icons.miscellaneous_services,
-                  title: 'Services',
-                  index: 3,
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.receipt_outlined,
-                  activeIcon: Icons.receipt,
-                  title: 'Ticket Status',
-                  index: 4,
-                ),
+
+                if (isLoggedIn) ...[
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.person_outline,
+                    activeIcon: Icons.person,
+                    title: 'Profile',
+                    index: 1,
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.subscriptions_outlined,
+                    activeIcon: Icons.subscriptions,
+                    title: 'Subscriptions',
+                    index: 2,
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.miscellaneous_services_outlined,
+                    activeIcon: Icons.miscellaneous_services,
+                    title: 'Services',
+                    index: 3,
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.receipt_outlined,
+                    activeIcon: Icons.receipt,
+                    title: 'Ticket Status',
+                    index: 4,
+                  ),
+                ] else ...[
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.subscriptions_outlined,
+                    activeIcon: Icons.subscriptions,
+                    title: 'Subscriptions',
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() => _selectedIndex = 2);
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context,
+                    icon: Icons.miscellaneous_services_outlined,
+                    activeIcon: Icons.miscellaneous_services,
+                    title: 'Services',
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() => _selectedIndex = 3);
+                    },
+                  ),
+                ],
 
                 const SizedBox(height: 20),
                 Padding(
@@ -389,9 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                const SizedBox(height: 10),
-
-                // Support & Legal Section
+                // Support & Legal Section (always visible)
                 Padding(
                   padding: const EdgeInsets.only(left: 25, bottom: 10),
                   child: Text(
@@ -437,34 +493,42 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-
-          // Footer with logout button
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.logout, size: 20),
-              label: const Text('Logout'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    Theme.of(context).primaryColor.withOpacity(0.2),
-                foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Theme.of(context).primaryColor),
+          if (isLoggedIn)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.logout, size: 20),
+                label: const Text('Logout'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context).primaryColor.withOpacity(0.2),
+                  foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
                 ),
-              ),
-              onPressed: () {
-                // Clear user session
-                GetStorage().remove(isLoginSession);
-                GetStorage().remove(tokenKey);
-                GetStorage().remove(userCollectionName);
+                onPressed: () {
+                  // Clear user session
+                  GetStorage().remove(isLoginSession);
+                  GetStorage().remove(tokenKey);
+                  GetStorage().remove(userCollectionName);
 
-                // Navigate to Login Screen
-                Get.offAllNamed('/login');
-              },
+                  // Navigate to Home Screen (not login)
+                  Get.offAllNamed('/home');
+
+                  // Show logout message
+                  Get.snackbar(
+                    'Logged Out',
+                    'You have been successfully logged out',
+                    backgroundColor: Colors.green,
+                    colorText: Colors.white,
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -537,6 +601,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBottomNavBar() {
+    GetStorage().hasData(isLoginSession);
+
     return Container(
       decoration: BoxDecoration(
         boxShadow: [
@@ -551,7 +617,9 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
-          onTap: (index) => setState(() => _selectedIndex = index),
+          onTap: (index) {
+            setState(() => _selectedIndex = index);
+          },
           type: BottomNavigationBarType.fixed,
           backgroundColor:
               Theme.of(context).bottomNavigationBarTheme.backgroundColor,
