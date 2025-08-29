@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import '../widgets/session_string.dart';
 
 class SplashController extends GetxController
     with GetSingleTickerProviderStateMixin {
@@ -47,10 +46,7 @@ class SplashController extends GetxController
     final delaySeconds = 5 + _random.nextInt(3);
     await Future.delayed(Duration(seconds: delaySeconds));
 
-    final isLoggedIn = _storage.hasData(isLoginSession);
-    final routeName = isLoggedIn ? '/home' : '/welcome';
-
-    Get.offAllNamed(routeName); // Using named routes
+    Get.offAllNamed('/home'); // Always go to home, regardless of login status
   }
 
   @override
