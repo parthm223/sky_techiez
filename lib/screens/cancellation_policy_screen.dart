@@ -1,7 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:sky_techiez/services/user_service.dart';
 
-class CancellationPolicyScreen extends StatelessWidget {
+class CancellationPolicyScreen extends StatefulWidget {
   const CancellationPolicyScreen({super.key});
+
+  @override
+  State<CancellationPolicyScreen> createState() =>
+      _CancellationPolicyScreenState();
+}
+
+class _CancellationPolicyScreenState extends State<CancellationPolicyScreen> {
+  bool _isDeleting = false;
+
+  Future<void> _confirmAndDelete() async {
+    // Confirm dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0A0E21),
+        title: const Text('Delete Account',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'This action will permanently delete your profile and cannot be undone. Are you sure?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isDeleting = true);
+
+    final res = await UserService.deleteAccount();
+
+    setState(() => _isDeleting = false);
+
+    if (res['success'] == true) {
+      // Clear local session data
+      await UserService.clearSession();
+
+      Get.snackbar(
+        'Deleted',
+        'Your account has been deleted successfully.',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(10),
+        duration: const Duration(seconds: 2),
+      );
+
+      // Navigate to login or welcome
+      Get.offAllNamed('/home');
+    } else {
+      final message = (res['message'] ?? 'Failed to delete account').toString();
+
+      Get.snackbar(
+        'Error',
+        message,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(10),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,15 +143,17 @@ class CancellationPolicyScreen extends StatelessWidget {
               const SizedBox(height: 24),
               const Divider(color: Colors.blueGrey, thickness: 1),
               const SizedBox(height: 24),
+
+              // Policy sections (same as your original)
               _buildPolicySection(
                 'No Refund Policy',
                 'Sky Techiez does not offer refunds for any services, including one-time services or subscription-based plans. Once a service is activated or delivered, the payment is considered final and non-refundable.',
-                [],
+                const [],
               ),
               _buildPolicySection(
                 'Subscription Cancellation',
                 'Customers may cancel their active subscription at any time.',
-                [
+                const [
                   'Cancellations will stop future billing starting from the next cycle.',
                   'Services will continue until the end of the current paid term.',
                 ],
@@ -82,12 +161,13 @@ class CancellationPolicyScreen extends StatelessWidget {
               _buildPolicySection(
                 'Non-Refundable Circumstances',
                 'The following are not eligible for refunds:',
-                [
+                const [
                   'Services that have been delivered or completed.',
                   'Subscription plans after activation.',
                   'Issues caused by pre-existing device problems or third-party interference.',
                 ],
               ),
+
               const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -121,6 +201,65 @@ class CancellationPolicyScreen extends StatelessWidget {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 32),
+
+              // Delete Profile section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade900.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade700),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // const Text(
+                    //   'Delete Profile',
+                    //   style: TextStyle(
+                    //     fontSize: 18,
+                    //     fontWeight: FontWeight.bold,
+                    //     color: Colors.redAccent,
+                    //   ),
+                    // ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Delete account or cancel your subscription',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: _isDeleting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.delete_forever),
+                        label: Text(
+                            _isDeleting ? 'Deleting...' : 'Delete Account'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          textStyle:
+                              const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: _isDeleting ? null : _confirmAndDelete,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 40),
             ],
           ),

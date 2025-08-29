@@ -1143,7 +1143,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
             text: 'Create Account',
             icon: Icons.person_add_rounded,
             onPressed: () {
-              Get.toNamed('/register');
+              Get.toNamed('/createAccount');
             },
           ),
         ),

@@ -141,7 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () => Get.toNamed('/register'),
+                    onPressed: () => Get.toNamed('/createAccount'),
                     icon: const Icon(Icons.person_add),
                     label: const Text('Create New Account'),
                     style: OutlinedButton.styleFrom(

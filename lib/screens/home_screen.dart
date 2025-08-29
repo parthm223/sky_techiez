@@ -366,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Create New Account',
                     onTap: () {
                       Navigator.pop(context);
-                      Get.toNamed('/register');
+                      Get.toNamed('/createAccount');
                     },
                   ),
                   const SizedBox(height: 20),
