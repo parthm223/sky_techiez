@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:ui';
 import 'package:get_storage/get_storage.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:sky_techiez/screens/create_ticket_screen.dart';
-import 'package:sky_techiez/screens/payment/payment_details_screen.dart';
 import 'package:sky_techiez/screens/payment/subscription_history_screen.dart';
 import 'package:sky_techiez/services/subscription_service.dart';
 import 'package:sky_techiez/widgets/session_string.dart';
@@ -1262,14 +1263,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
       orElse: () => {},
     );
     if (selectedPlan.isNotEmpty) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PaymentDetailsScreen(
-            selectedPlan: selectedPlan,
-          ),
-        ),
-      );
+      _showSubscriptionDialog(selectedPlan);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1281,6 +1275,125 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen>
           ),
         ),
       );
+    }
+  }
+
+  void _showSubscriptionDialog(Map<String, dynamic> selectedPlan) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.6),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(25),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                  color: Colors.white.withOpacity(0.08),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.call,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Activate Subscription",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Call our team to activate your premium plan.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                    InkWell(
+                      onTap: _makePhoneCall,
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                          ),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.call, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              "Call Now",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    const Text(
+                      "+1 888 785 8705",
+                      style: TextStyle(
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _makePhoneCall() async {
+    final Uri url = Uri.parse('tel:+18887858705');
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
     }
   }
 }

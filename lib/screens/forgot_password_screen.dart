@@ -5,7 +5,6 @@ import 'package:sky_techiez/services/auth_service.dart';
 import 'package:sky_techiez/theme/app_theme.dart';
 import 'package:sky_techiez/widgets/custom_button.dart';
 import 'package:sky_techiez/widgets/custom_text_field.dart';
-import 'package:sky_techiez/screens/verify_otp_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   final String? initialEmail;
@@ -45,24 +44,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       try {
         final email = _emailController.text.trim();
-        final success = await AuthService.sendOtp(email);
 
-        if (success) {
+        final result = await AuthService.forgotPassword(email);
+
+        if (result['success'] == true) {
           Get.snackbar(
             'Success',
-            'OTP sent to your email',
+            result['message'] ?? 'Reset password email sent',
             backgroundColor: Colors.green,
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
             margin: const EdgeInsets.all(10),
           );
 
-          // Navigate to OTP verification screen
-          Get.to(() => VerifyOtpScreen(email: email));
+          // Optional navigation
+          // Get.back();
         } else {
           Get.snackbar(
             'Error',
-            'Failed to send OTP. Please try again.',
+            result['message'] ?? 'Failed to send reset email',
             backgroundColor: Colors.red,
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
@@ -89,6 +89,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Forgot Password'),
         backgroundColor: AppColors.darkBackground,
@@ -97,62 +98,64 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Image.asset(
-                    'assets/images/SkyLogo.png',
-                    height: 150,
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Image.asset(
+                      'assets/images/SkyLogo.png',
+                      height: 150,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Forgot Password',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.white,
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Forgot Password',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Enter your email address to receive a verification code',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppColors.grey,
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Enter your email address to receive password reset link',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.grey,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                CustomTextField(
-                  label: 'Email',
-                  hint: 'Enter your email address',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value)) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-                _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                        color: AppColors.primaryBlue,
-                      ))
-                    : CustomButton(
-                        text: 'Send Verification Code',
-                        onPressed: _sendOtp,
-                      ),
-              ],
+                  const SizedBox(height: 24),
+                  CustomTextField(
+                    label: 'Email',
+                    hint: 'Enter your email address',
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                          color: AppColors.primaryBlue,
+                        ))
+                      : CustomButton(
+                          text: 'Send Reset Link',
+                          onPressed: _sendOtp,
+                        ),
+                ],
+              ),
             ),
           ),
         ),

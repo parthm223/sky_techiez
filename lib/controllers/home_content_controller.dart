@@ -327,4 +327,113 @@ class HomeContentController extends GetxController with WidgetsBindingObserver {
         return Icons.info;
     }
   }
+
+  Widget buildPrinterDriverAssistantCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF050816),
+            Color(0xFF0B1028),
+            Color(0xFF121A3D),
+          ],
+        ),
+        border: Border.all(
+          color: const Color(0xFF3DA5FF),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF3DA5FF).withOpacity(0.35),
+            blurRadius: 25,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Printer Driver Assistant',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'Find compatible printer drivers and get\nsetup guidance for your device.',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 17,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                height: 72,
+                width: 72,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF5FE1FF),
+                      Color(0xFF566BFF),
+                    ],
+                  ),
+                ),
+                child: const Icon(
+                  Icons.print_rounded,
+                  color: Colors.white,
+                  size: 38,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          InkWell(
+            onTap: () {},
+            borderRadius: BorderRadius.circular(18),
+            child: Container(
+              height: 58,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF4EC8FF),
+                    Color(0xFF345DFF),
+                  ],
+                ),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'Find Driver',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

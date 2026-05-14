@@ -167,6 +167,48 @@ class AuthService {
     }
   }
 
+// Forget Password Email
+  // Forgot Password
+static Future<Map<String, dynamic>> forgotPassword(
+    String email) async {
+  try {
+    print('Sending forgot password request for: $email');
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/forgot-password'),
+      body: {
+        'email': email,
+      },
+    );
+
+    print('Forgot password response status: ${response.statusCode}');
+    print('Forgot password response body: ${response.body}');
+
+    final data = json.decode(response.body);
+
+    if (response.statusCode == 200) {
+      return {
+        'success': data['success'] ?? true,
+        'message':
+            data['message'] ?? 'Reset password link sent successfully',
+        'data': data,
+      };
+    } else {
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Failed to send reset link',
+      };
+    }
+  } catch (e) {
+    print('Error in forgot password API: $e');
+
+    return {
+      'success': false,
+      'message': 'Error: $e',
+    };
+  }
+}
+
   // Send OTP to email
   static Future<bool> sendOtp(String email) async {
     try {
