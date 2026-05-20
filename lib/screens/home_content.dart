@@ -97,6 +97,8 @@ class HomeContent extends StatelessWidget {
               }),
             ),
             const SizedBox(height: 24),
+
+            buildPrinterDriverAssistantCard(),
             const Text(
               'WHAT WE\'RE OFFERING',
               style: TextStyle(
@@ -109,8 +111,7 @@ class HomeContent extends StatelessWidget {
             _buildServicesList(),
             const SizedBox(height: 16),
             _buildHelpCard(),
-            const SizedBox(height: 16),
-            buildPrinterDriverAssistantCard(),
+
             const SizedBox(height: 16),
             _buildTollFreeCard(),
           ],
@@ -121,111 +122,167 @@ class HomeContent extends StatelessWidget {
 
   Widget buildPrinterDriverAssistantCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF050816),
-            Color(0xFF0B1028),
-            Color(0xFF121A3D),
-          ],
-        ),
-        border: Border.all(
-          color: const Color(0xFF3DA5FF),
-          width: 1.5,
-        ),
+        color: const Color(0xFF0A0E27),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3DA5FF).withOpacity(0.35),
-            blurRadius: 25,
-            spreadRadius: 2,
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Printer Driver Assistant',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      'Find compatible printer drivers and get\nsetup guidance for your device.',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 17,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                height: 72,
-                width: 72,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF5FE1FF),
-                      Color(0xFF566BFF),
-                    ],
-                  ),
-                ),
-                child: const Icon(
-                  Icons.print_rounded,
-                  color: Colors.white,
-                  size: 38,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          InkWell(
-            onTap: () {
-              Get.to(() => PrinterDriverScreen());
-            },
-            borderRadius: BorderRadius.circular(18),
-            child: Container(
-              height: 58,
-              width: double.infinity,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            // Subtle gradient background for depth
+            Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF4EC8FF),
-                    Color(0xFF345DFF),
+                    const Color(0xFF0F132E),
+                    const Color(0xFF090C22),
+                    const Color(0xFF05071A),
                   ],
-                ),
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                'Find Driver',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-          ),
-        ],
+            // Decorative blurs
+            Positioned(
+              top: -40,
+              right: -30,
+              child: Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF3A5EFF).withOpacity(0.15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF3A5EFF).withOpacity(0.15),
+                      blurRadius: 40,
+                      spreadRadius: 0,
+                      offset: Offset.zero,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Main content
+            Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Printer Driver Assistant',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                                height: 1.2,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'Find compatible printer drivers and get\nsetup guidance for your device.',
+                              style: TextStyle(
+                                color: Color(0xFFB0B9E6),
+                                fontSize: 16,
+                                height: 1.45,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        height: 70,
+                        width: 70,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF5FE1FF),
+                              Color(0xFF566BFF),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF3D5CFF).withOpacity(0.5),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.print_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  InkWell(
+                    onTap: () {
+                      Get.to(() => PrinterDriverScreen());
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      height: 60,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF3D6DFF),
+                            Color(0xFF4A3BFF),
+                          ],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF3D5CFF).withOpacity(0.4),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        'Find Driver',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -117,12 +117,15 @@ class PrinterSupportScreen extends StatelessWidget {
 
                   const SizedBox(height: 28),
 
-                  // BUTTONS
                   _supportButton(
                     text: 'Talk to Support',
+                    buttonColors: const [
+                      Color(0xFF4FC3FF),
+                      Color(0xFF3763FF),
+                    ],
                     onTap: () {
                       controller.launchDialer(
-                        controller.tollFreeNumber.value,
+                        '+1888-908-1218',
                       );
                     },
                   ),
@@ -130,15 +133,31 @@ class PrinterSupportScreen extends StatelessWidget {
                   const SizedBox(height: 18),
 
                   _supportButton(
-                    text: 'Live Assistance',
-                    onTap: () {},
+                    text: 'Toll Free Number',
+                    buttonColors: const [
+                      Color(0xFF8B5CFF),
+                      Color(0xFF5B3DFF),
+                    ],
+                    onTap: () {
+                      controller.launchDialer(
+                        '+1888-908-1218',
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 18),
 
                   _supportButton(
-                    text: 'Remote Setup Help',
-                    onTap: () {},
+                    text: 'Call Now',
+                    buttonColors: const [
+                      Color(0xFF19D200),
+                      Color(0xFF008F7A),
+                    ],
+                    onTap: () {
+                      controller.launchDialer(
+                        '+1888-908-1218',
+                      );
+                    },
                   ),
                 ],
               ),
@@ -152,6 +171,7 @@ class PrinterSupportScreen extends StatelessWidget {
   Widget _supportButton({
     required String text,
     required VoidCallback onTap,
+    required List<Color> buttonColors,
   }) {
     return InkWell(
       onTap: onTap,

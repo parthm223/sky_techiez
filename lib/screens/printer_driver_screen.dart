@@ -78,43 +78,25 @@ class PrinterDriverScreen extends StatelessWidget {
                   const SizedBox(height: 38),
 
                   // TEXTFIELD
-                  Container(
-                    height: 76,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(40),
-                      color: Colors.white.withOpacity(0.08),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.20),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withOpacity(0.03),
-                          blurRadius: 20,
-                          spreadRadius: 1,
-                        ),
-                      ],
+                  TextField(
+                    controller: printerController,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w500,
                     ),
-                    child: TextField(
-                      controller: printerController,
-                      style: const TextStyle(
-                        color: Colors.white,
+                    cursorColor: Colors.white,
+                    decoration: InputDecoration(
+                      hintText: 'HP DeskJet 2700',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withOpacity(0.35),
                         fontSize: 21,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w400,
                       ),
-                      cursorColor: Colors.white,
-                      decoration: InputDecoration(
-                        hintText: 'HP DeskJet 2700',
-                        hintStyle: TextStyle(
-                          color: Colors.white.withOpacity(0.35),
-                          fontSize: 21,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 28,
-                          vertical: 24,
-                        ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 28,
+                        vertical: 24,
                       ),
                     ),
                   ),
