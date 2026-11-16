@@ -12,6 +12,7 @@ import 'package:sky_techiez/screens/ticket_status_screen.dart';
 import 'package:sky_techiez/services/notification_service.dart';
 import 'package:sky_techiez/models/notification_model.dart';
 import 'package:sky_techiez/widgets/notifications_drawer.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/session_string.dart';
 import 'home_content.dart';
 
@@ -30,6 +31,72 @@ class _HomeScreenState extends State<HomeScreen> {
   int unreadCount = 0;
   int specialUnreadCount = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // For Expandable Email Support Dropdown
+  bool _isEmailSupportExpanded = false;
+
+  // For Expandable Antivirus Solutions Dropdown
+  bool _isAntivirusExpanded = false;
+
+  // Email Support list with URL (as per the image)
+  final List<Map<String, String>> _emailSupportList = [
+    {
+      'title': 'Gmail Support',
+      'url': 'https://site.skytechiez.co/gmail-support'
+    },
+    {
+      'title': 'Outlook Support',
+      'url': 'https://site.skytechiez.co/outlook-support'
+    },
+    {
+      'title': 'Microsoft 365 Support',
+      'url': 'https://site.skytechiez.co/microsoft-365-support'
+    },
+    {
+      'title': 'Office 365 Support',
+      'url': 'https://site.skytechiez.co/office-365-support'
+    },
+    {
+      'title': 'Yahoo Mail Support',
+      'url': 'https://site.skytechiez.co/yahoo-mail-support'
+    },
+    {
+      'title': 'AOL Mail Support',
+      'url': 'https://site.skytechiez.co/aol-mail-support'
+    },
+    {
+      'title': 'AT&T Email Support',
+      'url': 'https://site.skytechiez.co/att-email-support'
+    },
+    {
+      'title': 'Comcast Email Support',
+      'url': 'https://site.skytechiez.co/comcast-email-support'
+    },
+    {
+      'title': 'Verizon Email Support',
+      'url': 'https://site.skytechiez.co/verizon-email-support'
+    },
+    {
+      'title': 'iCloud Mail Support',
+      'url': 'https://site.skytechiez.co/icloud-mail-support'
+    },
+  ];
+
+// Antivirus Solutions list with URL
+  final List<Map<String, String>> _antivirusList = [
+    {
+      'title': 'Norton Solutions',
+      'url': 'https://site.skytechiez.co/norton-antivirus'
+    },
+    {
+      'title': 'Bitdefender Solutions',
+      'url': 'https://site.skytechiez.co/bitdefender-total-security'
+    },
+    {
+      'title': 'Avast Solutions',
+      'url': 'https://site.skytechiez.co/avast-business-security'
+    },
+  ];
 
   @override
   void initState() {
@@ -402,6 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Subscriptions',
                     index: 2,
                   ),
+                  // ========== SERVICES (index 3) ==========
                   _buildDrawerItem(
                     context,
                     icon: Icons.miscellaneous_services_outlined,
@@ -409,6 +477,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Services',
                     index: 3,
                   ),
+
+                  // ========== EMAIL SUPPORT DROPDOWN (Services and Ticket Status ni Vache) ==========
+                  // _buildEmailSupportDropdown(context),
+
+                  // ========== ANTIVIRUS SOLUTIONS DROPDOWN (Email Support ni niche) ==========
+                  _buildAntivirusDropdown(context),
+                  // ========== TICKET STATUS (index 4) ==========
                   _buildDrawerItem(
                     context,
                     icon: Icons.receipt_outlined,
@@ -437,6 +512,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       setState(() => _selectedIndex = 3);
                     },
                   ),
+
+                  // ========== EMAIL SUPPORT DROPDOWN (Services and Ticket Status ni Vache) ==========
+                  _buildEmailSupportDropdown(context),
+
+                  // ========== ANTIVIRUS SOLUTIONS DROPDOWN ==========
+                  _buildAntivirusDropdown(context),
                 ],
 
                 const SizedBox(height: 20),
@@ -534,6 +615,121 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ========== NEW: Email Support Dropdown Widget ==========
+  Widget _buildEmailSupportDropdown(BuildContext context) {
+    return Column(
+      children: [
+        // Email Support main item (tappable to expand/collapse)
+        _buildDrawerItem(
+          context,
+          icon: Icons.email_outlined,
+          activeIcon: Icons.email,
+          title: 'Email Support',
+          onTap: () {
+            setState(() {
+              _isEmailSupportExpanded = !_isEmailSupportExpanded;
+            });
+          },
+        ),
+        // Sub-items (Email Support list) - shown only when expanded
+        if (_isEmailSupportExpanded)
+          Padding(
+            padding: const EdgeInsets.only(left: 25.0),
+            child: Column(
+              children: _emailSupportList
+                  .map(
+                    (item) => _buildDrawerItem(
+                      context,
+                      icon: Icons.arrow_right,
+                      title: item['title']!,
+                      onTap: () async {
+                        final url = item['url']!;
+                        // Close drawer first
+                        Navigator.pop(context);
+
+                        // Open in browser
+                        try {
+                          final Uri uri = Uri.parse(url);
+                          // Force open in external browser
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } catch (e) {
+                          // If error, show message
+                          Get.snackbar(
+                            'Error',
+                            'Unable to open ${item['title']}',
+                            backgroundColor: Colors.red,
+                            colorText: Colors.white,
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        }
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+// ========== NEW: Antivirus Solutions Dropdown Widget ==========
+  Widget _buildAntivirusDropdown(BuildContext context) {
+    return Column(
+      children: [
+        // Antivirus Solutions main item (tappable to expand/collapse)
+        _buildDrawerItem(
+          context,
+          icon: Icons.security_outlined,
+          activeIcon: Icons.security,
+          title: 'Antivirus Solutions',
+          onTap: () {
+            setState(() {
+              _isAntivirusExpanded = !_isAntivirusExpanded;
+            });
+          },
+        ),
+        // Sub-items (Antivirus list) - shown only when expanded
+        if (_isAntivirusExpanded)
+          Padding(
+            padding: const EdgeInsets.only(left: 25.0),
+            child: Column(
+              children: _antivirusList
+                  .map(
+                    (item) => _buildDrawerItem(
+                      context,
+                      icon: Icons.verified_user_outlined,
+                      title: item['title']!,
+                      onTap: () async {
+                        final url = item['url']!;
+                        Navigator.pop(context);
+                        try {
+                          final Uri uri = Uri.parse(url);
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } catch (e) {
+                          Get.snackbar(
+                            'Error',
+                            'Unable to open ${item['title']}',
+                            backgroundColor: Colors.red,
+                            colorText: Colors.white,
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        }
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildDrawerItem(
     BuildContext context, {
     required IconData icon,
@@ -591,6 +787,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Theme.of(context).primaryColor,
                       shape: BoxShape.circle,
                     ),
+                  ),
+                // Show arrow for Email Support and Antivirus Solutions dropdowns
+                if (title == 'Email Support' || title == 'Antivirus Solutions')
+                  Icon(
+                    (title == 'Email Support'
+                            ? _isEmailSupportExpanded
+                            : _isAntivirusExpanded)
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                    size: 20,
                   ),
               ],
             ),

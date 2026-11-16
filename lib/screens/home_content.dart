@@ -27,6 +27,7 @@ class HomeContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ===== Header Row =====
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -47,10 +48,13 @@ class HomeContent extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
+
+            // ===== TOLL FREE CARD (Moved to Top & New Design) =====
+
             const Divider(),
             const SizedBox(height: 16),
 
-            // Display latest ticket if available
+            // ===== Latest Ticket =====
             Obx(() {
               if (controller.latestTicket.value != null) {
                 return _buildLatestTicketCard(controller);
@@ -61,6 +65,7 @@ class HomeContent extends StatelessWidget {
             }),
             const SizedBox(height: 24),
 
+            // ===== Services Grid =====
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -99,6 +104,7 @@ class HomeContent extends StatelessWidget {
             const SizedBox(height: 24),
 
             buildPrinterDriverAssistantCard(),
+
             const Text(
               'WHAT WE\'RE OFFERING',
               style: TextStyle(
@@ -110,11 +116,114 @@ class HomeContent extends StatelessWidget {
             const SizedBox(height: 16),
             _buildServicesList(),
             const SizedBox(height: 16),
-            _buildHelpCard(),
-
-            const SizedBox(height: 16),
             _buildTollFreeCard(),
+            const SizedBox(height: 16),
+            // ===== NEED HELP CARD (Now after everything) =====
+            _buildHelpCard(),
+            const SizedBox(height: 16),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ===== NEW TOLL FREE CARD DESIGN =====
+  Widget _buildTollFreeCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF2A3EFF), // Bright Blue
+            Color(0xFF1E29B8), // Darker Blue
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2A3EFF).withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            // કોલ કરવા માટેનું ફંક્શન
+            controller.launchDialer(controller.tollFreeNumber.value);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                // આઇકોન વાળો ભાગ
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.phone_in_talk_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // ટેક્સ્ટ વાળો ભાગ
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Toll Free Number',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Obx(() {
+                        if (controller.isLoadingTollFreeNumber.value) {
+                          return const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          );
+                        } else {
+                          return Text(
+                            controller.formatPhoneNumber(
+                                controller.tollFreeNumber.value),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                          );
+                        }
+                      }),
+                    ],
+                  ),
+                ),
+                // કોલ આઇકોન
+                const Icon(
+                  Icons.call,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -138,21 +247,19 @@ class HomeContent extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         child: Stack(
           children: [
-            // Subtle gradient background for depth
             Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    const Color(0xFF0F132E),
-                    const Color(0xFF090C22),
-                    const Color(0xFF05071A),
+                    Color(0xFF0F132E),
+                    Color(0xFF090C22),
+                    Color(0xFF05071A),
                   ],
                 ),
               ),
             ),
-            // Decorative blurs
             Positioned(
               top: -40,
               right: -30,
@@ -173,8 +280,6 @@ class HomeContent extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Main content
             Padding(
               padding: const EdgeInsets.all(22),
               child: Column(
@@ -216,10 +321,7 @@ class HomeContent extends StatelessWidget {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFF5FE1FF),
-                              Color(0xFF566BFF),
-                            ],
+                            colors: [Color(0xFF5FE1FF), Color(0xFF566BFF)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -251,10 +353,7 @@ class HomeContent extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
                         gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFF3D6DFF),
-                            Color(0xFF4A3BFF),
-                          ],
+                          colors: [Color(0xFF3D6DFF), Color(0xFF4A3BFF)],
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                         ),
@@ -302,8 +401,8 @@ class HomeContent extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
+            children: const [
+              Text(
                 'Your Latest Ticket',
                 style: TextStyle(
                   fontSize: 16,
@@ -380,9 +479,7 @@ class HomeContent extends StatelessWidget {
         color: Colors.grey.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Center(
-        child: CircularProgressIndicator(),
-      ),
+      child: const Center(child: CircularProgressIndicator()),
     );
   }
 
@@ -431,7 +528,6 @@ class HomeContent extends StatelessWidget {
             trailing: const Icon(Icons.arrow_forward_ios,
                 size: 16, color: AppColors.grey),
             onTap: () {
-              // Navigation logic based on index
               if (index == 1) {
                 Get.to(() => ServicesScreen());
               } else if (index == 2) {
@@ -526,53 +622,6 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildTollFreeCard() {
-    return Card(
-      color: AppColors.cardBackground,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Toll Free Number',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Call us for free at',
-            ),
-            const SizedBox(height: 4),
-            Obx(() {
-              if (controller.isLoadingTollFreeNumber.value) {
-                return const CircularProgressIndicator();
-              } else {
-                return InkWell(
-                  onTap: () {
-                    controller.launchDialer(controller.tollFreeNumber.value);
-                  },
-                  child: Text(
-                    controller
-                        .formatPhoneNumber(controller.tollFreeNumber.value),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryBlue,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                );
-              }
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildTicketDetailRow(String label, String? value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -592,9 +641,7 @@ class HomeContent extends StatelessWidget {
           Expanded(
             child: Text(
               value ?? 'Not specified',
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
         ],
